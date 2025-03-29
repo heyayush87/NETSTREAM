@@ -27,7 +27,7 @@
 
 ### SIGNIN PAGE
 
-![Signin Page](https://github.com/heyayush87/Netflix-GPT/blob/7dc4e7ec559451241c8aa34983096084f7a6262c/Screenshot%202024-11-29%20174715.png)
+![Signin Page](Screenshot (15).png4715.png)
 
 ### SIGNUP PAGE
 
