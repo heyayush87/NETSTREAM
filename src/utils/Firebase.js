@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth";
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBHzRQMT-KtS4p4qYBL7iRDP0EgW9wISrI",
+  apiKey: process.env.REACT_APP_FIREBASE_KEY,
   authDomain: "netflixgpt-6b978.firebaseapp.com",
   projectId: "netflixgpt-6b978",
   storageBucket: "netflixgpt-6b978.appspot.com", // ✅ Fixed URL
