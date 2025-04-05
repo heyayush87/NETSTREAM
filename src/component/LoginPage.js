@@ -86,11 +86,20 @@ const LoginPage = () => {
           >
             {showGpt ? "HoMe PaGe" : "GeMiNi SeArCh"}
           </button>
-          <img
-            className="hidden md:block w-12 h-12"
+          {/* <img
+            className="hidden md:block w-12 h-12 rounded-full object-cover"
             alt="User-Icon"
-            src={use.photoURL}
-          />
+            src={use?.photoURL || avtaar}
+          /> */}
+
+          {use?.photoURL && (
+            <img
+              className="hidden md:block w-12 h-12 rounded-full object-cover"
+              alt="User-Icon"
+              src={use.photoURL}
+            />
+          )}
+
           <button onClick={handleSignOut} className="font-bold text-white ">
             Sign Out
           </button>
