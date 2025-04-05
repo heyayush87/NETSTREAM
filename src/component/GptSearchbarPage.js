@@ -23,6 +23,7 @@ const GptSearchbarPage = () => {
         throw new Error(`TMDB API error: ${response.statusText}`);
       }
       const jsonData = await response.json();
+      console.log(jsonData);
       return jsonData.results || [];
     } catch (error) {
       console.error("Error fetching movie details from TMDB:", error);
