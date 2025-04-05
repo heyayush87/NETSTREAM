@@ -31,19 +31,24 @@
 
 ### SIGNUP PAGE
 
-![Signup Page](https://github.com/heyayush87/Netflix-GPT/blob/main/Screenshot%202024-11-29%20174737.png?raw=true)
+![Signup Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202024-11-29%20174737.png)
 
 ### BROWSE PAGE
 
-![Browse Page](https://github.com/heyayush87/Netflix-GPT/blob/main/Screenshot%202024-11-29%20174841.png?raw=true)
+![Browse Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202024-11-29%20174841.png)
 
 ### MOVIE LIST
 
-![Movie List](https://github.com/heyayush87/Netflix-GPT/blob/main/Screenshot%202024-11-29%20174919.png?raw=true)
+![Movie List](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202024-11-29%20174919.png)
 
 ### SEARCH PAGE
 
-![Search Page](https://github.com/heyayush87/Netflix-GPT/blob/main/Screenshot%202024-11-29%20175008.png?raw=true)
+![Search Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202024-11-29%20175008.png)
+
+### GEMINI MOVIE SUGGESTION
+
+![Gemini Suggestion ](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202025-03-29%20182059.png)
+
 
 ---
 
