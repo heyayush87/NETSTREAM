@@ -27,7 +27,7 @@
 
 ### SIGNIN PAGE
 
-![Signin Page](Screenshot (15).png4715.png)
+![Signin Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/37e53c139a51b7ab1b9a549aea9b597eb9dc196d/Screenshot%202024-11-29%20174715.png)
 
 ### SIGNUP PAGE
 
