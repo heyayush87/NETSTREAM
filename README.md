@@ -1,5 +1,5 @@
 ## PROJECT LINK 🔗🔗
-https://netflix-gemini-beta.vercel.app/
+https://netflix-gemini-4inx.vercel.app/
 
 ## 🚀 TechStack 🚀
 
