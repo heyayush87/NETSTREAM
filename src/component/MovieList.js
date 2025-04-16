@@ -3,7 +3,7 @@ import MovieCard from "./MovieCard";
 
 const MovieList = ({ title, movies }) => {
   if (!movies || movies.length === 0) {
-    console.log(`No movies available for ${title}`);
+    // console.log(`No movies available for ${title}`);
     return null;
   }
 

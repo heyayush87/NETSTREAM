@@ -12,7 +12,6 @@ const GptSearchbarPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // SEARCH MOVIE API FROM TMDB
   const searchMovieTmdb = async (movie) => {
     try {
       const response = await fetch(
@@ -23,7 +22,6 @@ const GptSearchbarPage = () => {
         throw new Error(`TMDB API error: ${response.statusText}`);
       }
       const jsonData = await response.json();
-      console.log(jsonData);
       return jsonData.results || [];
     } catch (error) {
       console.error("Error fetching movie details from TMDB:", error);
@@ -41,7 +39,6 @@ const GptSearchbarPage = () => {
         searchtext.current.value +
         ". Only give me 10 movies, comma-separated, like this format: 'Movie1, Movie2, Movie3, Movie4, Movie5'.";
 
-      // Initialize the Gemini AI client
       const genAI = new GoogleGenerativeAI(Gemini_Key);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -95,33 +92,36 @@ const GptSearchbarPage = () => {
   };
 
   return (
-    <div className="pt-[10%] flex justify-center">
-      <div className="absolute"></div>
-      <form
-        className="w-1/2 bg-black grid grid-cols-12"
-        onSubmit={(e) => e.preventDefault()}
-      >
-        <input
-          ref={searchtext}
-          className="p-4 m-4 col-span-9"
-          type="text"
-          placeholder={
-            lang[langKey]?.gptsearchPlaceholder || "Search for movies..."
-          }
-        />
-        <button
-          className="col-span-3 m-2 bg-red-600 rounded-lg"
-          onClick={handleSearchClick}
-          disabled={loading}
+    <div className="pt-24 px-4 flex justify-center">
+      <div className="w-full max-w-4xl">
+        <form
+          className="bg-black bg-opacity-70 grid grid-cols-12 gap-2 sm:gap-4 rounded-lg p-2 sm:p-4"
+          onSubmit={(e) => e.preventDefault()}
         >
-          {loading ? "Searching..." : lang[langKey]?.search || "Search"}
-        </button>
-      </form>
+          <input
+            ref={searchtext}
+            className="col-span-12 sm:col-span-9 p-3 sm:p-4 rounded-md text-black"
+            type="text"
+            placeholder={
+              lang[langKey]?.gptsearchPlaceholder || "Search for movies..."
+            }
+          />
+          <button
+            className="col-span-12 sm:col-span-3 bg-red-600 hover:bg-red-700 text-white p-3 sm:p-4 rounded-md transition duration-300"
+            onClick={handleSearchClick}
+            disabled={loading}
+          >
+            {loading ? "Searching..." : lang[langKey]?.search || "Search"}
+          </button>
+        </form>
 
-      {loading && (
-        <div className="text-white mt-4">Fetching recommendations...</div>
-      )}
-      {error && <div className="text-red-500 mt-4">{error}</div>}
+        {loading && (
+          <div className="text-white mt-4 text-center">
+            Fetching recommendations...
+          </div>
+        )}
+        {error && <div className="text-red-500 mt-4 text-center">{error}</div>}
+      </div>
     </div>
   );
 };
