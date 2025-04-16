@@ -7,8 +7,8 @@ const GptMovieSuggestion = () => {
   const movieNames = gptState?.movieNames || [];
   const movieResults = gptState?.movieResults || [];
 
-  console.log("MOVIE NAMES:", movieNames);
-  console.log("MOVIE RESULTS:", movieResults);
+  // console.log("MOVIE NAMES:", movieNames);
+  // console.log("MOVIE RESULTS:", movieResults);
 
   if (!movieNames.length || !movieResults.length) {
     console.warn("GptMovieSuggestion: No movie suggestions available");

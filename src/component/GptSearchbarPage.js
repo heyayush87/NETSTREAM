@@ -31,16 +31,22 @@ const GptSearchbarPage = () => {
   };
 
   const handleSearchClick = async () => {
+    const query = searchtext.current.value.trim();
+
+    if (!query) {
+      setError("Please enter something to search.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const gptQuery =
         "Act as a movie Recommendation System and suggest some movies for the query: " +
-        searchtext.current.value +
+        query +
         ". Only give me 10 movies, comma-separated, like this format: 'Movie1, Movie2, Movie3, Movie4, Movie5'.";
 
-      // Initialize the Gemini AI client
       const genAI = new GoogleGenerativeAI(Gemini_Key);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
