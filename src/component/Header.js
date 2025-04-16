@@ -21,15 +21,18 @@ const Header = () => {
   const passwordRef = useRef(null);
   const dispatch = useDispatch();
 
+  // Toggle between Sign In and Sign Up
   const handleToggleSignUp = () => setsignin(!signin);
 
+  // Handle Authentication
   const handleAuth = async () => {
-    seterrorMessage("");
+    seterrorMessage(""); // Clear previous errors
 
     const email = emailRef.current?.value;
     const password = passwordRef.current?.value;
     const name = nameRef.current?.value || "User";
 
+    // Validate input fields
     const validationError = Validate(email, password);
     if (validationError) {
       seterrorMessage(validationError);
@@ -37,6 +40,7 @@ const Header = () => {
     }
 
     if (!signin) {
+      // Signup logic
       try {
         const userCredential = await createUserWithEmailAndPassword(
           auth,
@@ -56,6 +60,7 @@ const Header = () => {
         seterrorMessage(error.message);
       }
     } else {
+      // Sign-in logic
       try {
         const userCredential = await signInWithEmailAndPassword(
           auth,
@@ -74,31 +79,22 @@ const Header = () => {
   };
 
   return (
-    <div className="relative min-h-screen">
-      {/* Background Image */}
-      <div className="absolute inset-0 -z-10">
-        <img
-          src={bglogo}
-          alt="bg-Logo"
-          className="w-full h-full object-cover"
-        />
+    <div>
+      <div className="absolute">
+        <img src={bglogo} alt="bg-Logo" />
       </div>
-
       <LoginPage />
 
-      {/* Auth Form */}
       <form
         onSubmit={(e) => e.preventDefault()}
-        className="w-[90%] sm:w-3/4 md:w-1/2 lg:w-1/3 xl:w-1/4 bg-black bg-opacity-70 p-6 sm:p-10 rounded-lg text-white absolute left-1/2 transform -translate-x-1/2 bottom-10"
+        className="w-3/12 absolute bg-black bg-opacity-70 p-12 mx-auto right-0 left-0 bottom-0 text-white"
       >
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4">
-          {signin ? "Sign In" : "Sign Up"}
-        </h1>
+        <h1 className="text-3xl font-bold">{signin ? "Sign In" : "Sign Up"}</h1>
 
         {!signin && (
           <input
             ref={nameRef}
-            className="p-2 my-2 bg-slate-600 w-full rounded-sm"
+            className="p-2 my-2 bg-slate-600 w-full"
             type="text"
             placeholder="Full Name"
           />
@@ -106,31 +102,29 @@ const Header = () => {
 
         <input
           ref={emailRef}
-          className="p-2 my-2 bg-slate-600 w-full rounded-sm"
+          className="p-2 my-2 bg-slate-600 w-full"
           type="email"
           placeholder="Email / Phone Number"
         />
 
         <input
           ref={passwordRef}
-          className="p-2 my-2 bg-slate-600 w-full rounded-sm"
+          className="p-2 my-2 bg-slate-600 w-full"
           type="password"
           placeholder="Password"
         />
 
-        {errorMessage && (
-          <p className="text-red-500 text-sm mt-1">{errorMessage}</p>
-        )}
+        {errorMessage && <p className="text-red-600">{errorMessage}</p>}
 
         <button
-          className="p-2 my-4 w-full bg-red-700 hover:bg-red-800 transition duration-300 rounded-md"
+          className="p-2 my-4 w-full bg-red-700 text-white rounded-sm"
           onClick={handleAuth}
         >
           {signin ? "Sign In" : "Sign Up"}
         </button>
 
         <p
-          className="py-2 text-center cursor-pointer hover:underline"
+          className="py-2 cursor-pointer w-full text-center"
           onClick={handleToggleSignUp}
         >
           {signin ? "New to Netflix? Sign Up" : "Already Registered? Sign In"}
