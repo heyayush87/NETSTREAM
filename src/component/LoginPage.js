@@ -58,9 +58,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="absolute w-screen px-8 py-2 bg-gradient-to-b from-black z-10 flex flex-col md:flex-row justify-between items-center md:items-start">
+    <div className="absolute w-full px-6 py-4 bg-gradient-to-b from-black z-10 flex flex-col md:flex-row justify-between items-center md:items-start">
       <img
-        className="w-44 mx-auto md:mx-0 mb-4 md:mb-0"
+        className="w-36 mx-auto md:mx-0 mb-4 md:mb-0"
         src={netflixlogo}
         alt="netflix-logo"
       />
