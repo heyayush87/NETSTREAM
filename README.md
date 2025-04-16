@@ -1,3 +1,6 @@
+## PROJECT LINK 🔗🔗
+https://netflix-gemini-4inx.vercel.app/
+
 ## 🚀 TechStack 🚀
 
 • React: Frontend framework for building user interfaces.  
