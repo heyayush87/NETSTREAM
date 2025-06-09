@@ -100,22 +100,20 @@ const GptSearchbarPage = () => {
   };
 
   return (
-    <div className="pt-[10%] flex justify-center">
-      <div className="absolute"></div>
+    <div className="pt-10 flex flex-col items-center w-full">
       <form
-        className="w-1/2 bg-black grid grid-cols-12"
+        className="w-full max-w-2xl bg-black bg-opacity-40 rounded-lg grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4"
         onSubmit={(e) => e.preventDefault()}
       >
         <input
           ref={searchtext}
-          className="p-4 m-4 col-span-9"
-          type="text"
+          className="col-span-1 sm:col-span-9 p-3 rounded text-base bg-gray-800 text-white placeholder-gray-400 outline-none"
           placeholder={
             lang[langKey]?.gptsearchPlaceholder || "Search for movies..."
           }
         />
         <button
-          className="col-span-3 m-2 bg-red-600 rounded-lg"
+          className="col-span-1 sm:col-span-3 p-3 bg-red-600 rounded-lg text-white font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
           onClick={handleSearchClick}
           disabled={loading}
         >

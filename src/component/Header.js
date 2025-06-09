@@ -79,7 +79,7 @@ const Header = () => {
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen flex flex-col">
       <div className="absolute inset-0 -z-10">
         <img
           src={bglogo}
@@ -90,56 +90,62 @@ const Header = () => {
 
       <LoginPage />
 
-      <form
-        onSubmit={(e) => e.preventDefault()}
-        className="w-11/12 sm:w-3/4 md:w-2/3 lg:w-1/2 xl:w-1/3 absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 p-8 sm:p-10 md:p-12 text-white rounded-lg"
-      >
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4">
-          {signin ? "Sign In" : "Sign Up"}
-        </h1>
+      <div className="flex-grow flex items-center justify-center p-4">
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className="w-full max-w-md bg-black bg-opacity-70 p-8 text-white rounded-lg"
+        >
+          <h1 className="text-3xl font-bold mb-6">
+            {signin ? "Sign In" : "Sign Up"}
+          </h1>
 
-        {!signin && (
+          {!signin && (
+            <input
+              ref={nameRef}
+              className="p-3 my-3 bg-gray-700 w-full rounded"
+              type="text"
+              placeholder="Full Name"
+            />
+          )}
+
           <input
-            ref={nameRef}
-            className="p-2 my-2 bg-slate-600 w-full rounded"
-            type="text"
-            placeholder="Full Name"
+            ref={emailRef}
+            className="p-3 my-3 bg-gray-700 w-full rounded"
+            type="email"
+            placeholder="Email / Phone Number"
           />
-        )}
 
-        <input
-          ref={emailRef}
-          className="p-2 my-2 bg-slate-600 w-full rounded"
-          type="email"
-          placeholder="Email / Phone Number"
-        />
+          <input
+            ref={passwordRef}
+            className="p-3 my-3 bg-gray-700 w-full rounded"
+            type="password"
+            placeholder="Password"
+          />
 
-        <input
-          ref={passwordRef}
-          className="p-2 my-2 bg-slate-600 w-full rounded"
-          type="password"
-          placeholder="Password"
-        />
+          {errorMessage && (
+            <p className="text-red-500 text-sm py-2">{errorMessage}</p>
+          )}
 
-        {errorMessage && <p className="text-red-600 text-sm">{errorMessage}</p>}
+          <button
+            className="p-3 my-4 w-full bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors"
+            onClick={handleAuth}
+          >
+            {signin ? "Sign In" : "Sign Up"}
+          </button>
 
-        <button
-          className="p-2 my-4 w-full bg-red-700 text-white rounded"
-          onClick={handleAuth}
-        >
-          {signin ? "Sign In" : "Sign Up"}
-        </button>
-
-        <p
-          className="py-2 cursor-pointer w-full text-center text-sm hover:underline"
-          onClick={handleToggleSignUp}
-        >
-          {signin ? "New to Netflix? Sign Up" : "Already Registered? Sign In"}
-        </p>
-      </form>
+          <p className="mt-4 text-gray-400 text-center">
+            {signin ? "New to Netflix?" : "Already registered?"}{" "}
+            <span
+              className="text-white hover:underline cursor-pointer"
+              onClick={handleToggleSignUp}
+            >
+              {signin ? "Sign up now" : "Sign in now"}
+            </span>
+          </p>
+        </form>
+      </div>
     </div>
   );
-  
 };
 
 export default Header;

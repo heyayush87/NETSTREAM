@@ -1,39 +1,36 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { auth } from "../utils/Firebase";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
-import { netflixlogo } from "../utils/constant";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { useSelector, useDispatch } from "react-redux";
+import { netflixlogo, Supported_Languages } from "../utils/constant";
 import { toggleGptsearch } from "../utils/GptSlice";
-
-import { onAuthStateChanged } from "firebase/auth";
 import { adduser, removeuser } from "../utils/UserSlice";
-import { useEffect } from "react";
-import { Supported_Languages } from "../utils/constant";
 import { changeLanguage } from "../utils/ConfigSlice";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const use = useSelector((store) => store.user);
+
   const handleSignOut = () => {
     signOut(auth)
       .then(() => {})
-      .catch((error) => {
+      .catch(() => {
         navigate("/error");
       });
   };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (use) => {
       if (use) {
         const { uid, email, displayName, photoURL } = use;
         dispatch(
           adduser({
-            uid: uid,
-            email: email,
-            displayName: displayName,
-            photoURL: photoURL,
+            uid,
+            email,
+            displayName,
+            photoURL,
           })
         );
         navigate("/browse");
@@ -42,35 +39,32 @@ const LoginPage = () => {
         navigate("/");
       }
     });
-
-    // Unsiubscribe when component unmounts
     return () => unsubscribe();
   }, []);
-  const handleGptSearchClick = () => {
-    // Toggle
 
+  const handleGptSearchClick = () => {
     dispatch(toggleGptsearch());
   };
 
   const handleChangeLanguage = (e) => {
     dispatch(changeLanguage(e.target.value));
-    // console.log(e.target.value);
   };
 
   const showGpt = useSelector((store) => store.Gpt.showgptsearch);
+
   return (
-    <div className="absolute w-screen px-8 py-2 bg-gradient-to-b from-black z-10 flex flex-col md:flex-row justify-between">
+    <header className="w-full px-2 sm:px-6 py-2 bg-gradient-to-b from-black/60 to-transparent z-30 flex flex-row items-center justify-between gap-4">
       <img
-        className="w-44 mx-auto md:mx-0"
+        className="w-20 sm:w-28 md:w-32 mx-0"
         src={netflixlogo}
         alt="netflix-logo"
       />
 
       {use && (
-        <div className="flex p-2 ">
+        <div className="flex flex-row items-center gap-2 p-2 w-auto">
           {showGpt && (
             <select
-              className="p-2 m-2 bg-gray-900 text-white"
+              className="p-1 sm:p-2 bg-gray-900 text-white rounded w-auto text-sm"
               onChange={handleChangeLanguage}
             >
               {Supported_Languages.map((lang) => (
@@ -81,31 +75,27 @@ const LoginPage = () => {
             </select>
           )}
           <button
-            className="px-4 py-2 m-2 font-bold text-white rounded-lg bg-green-600"
+            className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-semibold text-white rounded bg-green-600 hover:bg-green-700 transition w-auto"
             onClick={handleGptSearchClick}
           >
             {showGpt ? "HoMe PaGe" : "GeMiNi SeArCh"}
           </button>
-          {/* <img
-            className="hidden md:block w-12 h-12 rounded-full object-cover"
-            alt="User-Icon"
-            src={use?.photoURL || avtaar}
-          /> */}
-
           {use?.photoURL && (
             <img
-              className="hidden md:block w-12 h-12 rounded-full object-cover"
+              className="hidden md:block w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
               alt="User-Icon"
               src={use.photoURL}
             />
           )}
-
-          <button onClick={handleSignOut} className="font-bold text-white ">
+          <button
+            onClick={handleSignOut}
+            className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-semibold text-white rounded bg-red-600 hover:bg-red-700 transition w-auto"
+          >
             Sign Out
           </button>
         </div>
       )}
-    </div>
+    </header>
   );
 };
 
