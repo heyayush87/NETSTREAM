@@ -28,9 +28,7 @@ https://netflix-gemini-4inx.vercel.app/
 
 ## Screenshots
 
-### SIGNIN PAGE
 
-![Signin Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/37e53c139a51b7ab1b9a549aea9b597eb9dc196d/Screenshot%202024-11-29%20174715.png)
 
 ### SIGNUP PAGE
 
@@ -46,9 +44,6 @@ https://netflix-gemini-4inx.vercel.app/
 
 ### SEARCH PAGE
 
-![Search Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202024-11-29%20175008.png)
-
-### GEMINI MOVIE SUGGESTION
 
 ![Gemini Suggestion ](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202025-03-29%20182059.png)
 

@@ -21,18 +21,15 @@ const Header = () => {
   const passwordRef = useRef(null);
   const dispatch = useDispatch();
 
-  // Toggle between Sign In and Sign Up
   const handleToggleSignUp = () => setsignin(!signin);
 
-  // Handle Authentication
   const handleAuth = async () => {
-    seterrorMessage(""); // Clear previous errors
+    seterrorMessage("");
 
     const email = emailRef.current?.value;
     const password = passwordRef.current?.value;
     const name = nameRef.current?.value || "User";
 
-    // Validate input fields
     const validationError = Validate(email, password);
     if (validationError) {
       seterrorMessage(validationError);
@@ -40,7 +37,6 @@ const Header = () => {
     }
 
     if (!signin) {
-      // Signup logic
       try {
         const userCredential = await createUserWithEmailAndPassword(
           auth,
@@ -60,7 +56,6 @@ const Header = () => {
         seterrorMessage(error.message);
       }
     } else {
-      // Sign-in logic
       try {
         const userCredential = await signInWithEmailAndPassword(
           auth,
@@ -79,21 +74,21 @@ const Header = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col">
-      <div className="absolute inset-0 -z-10">
-        <img
-          src={bglogo}
-          alt="bg-Logo"
-          className="w-full h-full object-cover"
-        />
-      </div>
+    // ✅ Changed min-h-screen → min-h-dvh to support iOS safe area correctly
+    <div className="relative min-h-dvh flex flex-col">
+      {/* ✅ Replaced absolute background image with bg-cover style to avoid z-index/layout issues on mobile */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat -z-10"
+        style={{ backgroundImage: `url(${bglogo})` }}
+      ></div>
 
       <LoginPage />
 
       <div className="flex-grow flex items-center justify-center p-4">
         <form
           onSubmit={(e) => e.preventDefault()}
-          className="w-full max-w-md bg-black bg-opacity-70 p-8 text-white rounded-lg"
+          // ✅ Added responsive padding: px-6 for small devices, sm:px-8 for tablets and up
+          className="w-full max-w-md bg-black bg-opacity-70 px-6 sm:px-8 py-8 text-white rounded-lg"
         >
           <h1 className="text-3xl font-bold mb-6">
             {signin ? "Sign In" : "Sign Up"}
@@ -102,7 +97,7 @@ const Header = () => {
           {!signin && (
             <input
               ref={nameRef}
-              className="p-3 my-3 bg-gray-700 w-full rounded"
+              className="p-3 my-3 bg-gray-700 w-full rounded text-base" // ✅ text-base ensures no iOS zoom
               type="text"
               placeholder="Full Name"
             />
@@ -110,14 +105,14 @@ const Header = () => {
 
           <input
             ref={emailRef}
-            className="p-3 my-3 bg-gray-700 w-full rounded"
+            className="p-3 my-3 bg-gray-700 w-full rounded text-base" // ✅ text-base for Safari iOS
             type="email"
             placeholder="Email / Phone Number"
           />
 
           <input
             ref={passwordRef}
-            className="p-3 my-3 bg-gray-700 w-full rounded"
+            className="p-3 my-3 bg-gray-700 w-full rounded text-base" // ✅ text-base for Safari iOS
             type="password"
             placeholder="Password"
           />
