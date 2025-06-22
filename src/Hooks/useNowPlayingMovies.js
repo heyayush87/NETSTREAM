@@ -1,4 +1,4 @@
-import { API_OPTIONS } from "../utils/constant";
+import { API_OPTIONS, CLOUDLFARE_PROXY_URL } from "../utils/constant";
 import { useDispatch } from "react-redux";
 import { addNowPlayingMovies } from "../utils/movieSlice";
 import { useEffect } from "react";
@@ -7,10 +7,13 @@ const useNowPlayingMovies = () => {
 
   const getNowPlayingMovies = async () => {
     try {
+      const tmdbUrl =
+        "https://api.themoviedb.org/3/movie/now_playing?language=en-US&page=1";
       const response = await fetch(
-        "https://api.themoviedb.org/3/movie/now_playing?language=en-US&page=1",
+        CLOUDLFARE_PROXY_URL + "?url=" + encodeURIComponent(tmdbUrl),
         API_OPTIONS
       );
+    
 
       if (!response.ok) {
         throw new Error(`${response.status}`);
@@ -18,7 +21,7 @@ const useNowPlayingMovies = () => {
       }
 
       const data = await response.json();
-      // console.log(data.results);
+   
 
       dispatch(addNowPlayingMovies(data.results));
     } catch (error) {

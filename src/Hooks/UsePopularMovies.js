@@ -1,15 +1,17 @@
-import React from "react";
+
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { addPopularMovies } from "../utils/movieSlice";
-import { API_OPTIONS } from "../utils/constant";
+import { API_OPTIONS, CLOUDLFARE_PROXY_URL } from "../utils/constant";
 
 const UsePopularMovies = () => {
   const dispatch = useDispatch();
   async function getdata() {
     try {
+      const tmdbUrl =
+        "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1";
       const response = await fetch(
-        "https://api.themoviedb.org/3/movie/popular?language=en-US&page=1",
+        CLOUDLFARE_PROXY_URL + "?url=" + encodeURIComponent(tmdbUrl),
         API_OPTIONS
       );
       if (!response.ok) {

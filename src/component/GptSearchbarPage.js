@@ -1,7 +1,10 @@
 import React, { useRef, useState } from "react";
 import lang from "../utils/LanguageConstant";
 import { useDispatch, useSelector } from "react-redux";
-import { API_OPTIONS, Gemini_Key } from "../utils/constant";
+import {
+  API_OPTIONS,
+  Gemini_Key
+} from "../utils/constant";
 import { addGptMovieResult } from "../utils/GptSlice";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -15,13 +18,18 @@ const GptSearchbarPage = () => {
   // SEARCH MOVIE API FROM TMDB
   const searchMovieTmdb = async (movie) => {
     try {
-      const response = await fetch(
-        `https://api.themoviedb.org/3/search/movie?query=${movie}&include_adult=false&language=en-US&page=1`,
-        API_OPTIONS
+      const CLOUDLFARE_PROXY_URL =
+        "https://broken-band-3f7c.heyayush0709.workers.dev";
+      const encodedUrl = encodeURIComponent(
+        `https://api.themoviedb.org/3/search/movie?query=${movie}&include_adult=false&language=en-US&page=1`
       );
+
+      const response = await fetch(`${CLOUDLFARE_PROXY_URL}?url=${encodedUrl}`);
+
       if (!response.ok) {
-        throw new Error(`TMDB API error: ${response.statusText}`);
+        throw new Error(`TMDB API error: ${response.status} - ${movie}`);
       }
+
       const jsonData = await response.json();
       return jsonData.results || [];
     } catch (error) {
@@ -29,6 +37,7 @@ const GptSearchbarPage = () => {
       return [];
     }
   };
+  
 
   const handleSearchClick = async () => {
     const query = searchtext.current.value.trim();

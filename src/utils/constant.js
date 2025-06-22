@@ -3,13 +3,17 @@ export const netflixlogo =
 export const avtaar =
   "https://lh3.googleusercontent.com/ogw/AF2bZyh4S8n-MyamN3jl5bdR1Tw2AtDNf5ur1173v6-iiPyq4Q=s64-c-mo";
 
-export const API_OPTIONS = {
-  method: "GET",
-  headers: {
-    accept: "application/json",
-    Authorization: `Bearer ${process.env.REACT_APP_TMDB_KEY}`,
-  },
-};
+  export const API_OPTIONS = {
+    method: "GET",
+    headers: {
+      accept: "application/json",
+      // You don’t need Authorization here anymore
+    },
+  };
+
+  export const CLOUDLFARE_PROXY_URL =
+    "https://broken-band-3f7c.heyayush0709.workers.dev/";
+  
 
 export const bglogo =
   "https://wallpaperbat.com/img/288302-movie-posters-wallpaper.jpg";

@@ -1,5 +1,5 @@
-import { useDispatch, useSelector } from "react-redux";
-import { API_OPTIONS } from "../utils/constant";
+import { useDispatch } from "react-redux";
+import { API_OPTIONS, CLOUDLFARE_PROXY_URL } from "../utils/constant";
 import { addTrailer } from "../utils/movieSlice";
 import { useEffect } from "react";
 
@@ -8,12 +8,12 @@ const UseMovieTrailer = (movieid) => {
 
   async function getdata() {
     try {
+      const tmdbUrl = `https://api.themoviedb.org/3/movie/${movieid}/videos?language=en-US`;
       const response = await fetch(
-        "https://api.themoviedb.org/3/movie/" +
-          movieid +
-          "/videos?language=en-US",
+        CLOUDLFARE_PROXY_URL + "?url=" + encodeURIComponent(tmdbUrl),
         API_OPTIONS
       );
+
       // console.log(response);
 
       if (!response.ok) {
