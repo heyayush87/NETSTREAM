@@ -32,7 +32,7 @@ https://netflix-gemini-4inx.vercel.app/
 
 ### SIGNUP PAGE
 
-![Signup Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202024-11-29%20174737.png)
+![Signup Page](https://github.com/heyayush87/NETSTREAM/blob/5ce3604fbcb6c96b9d640b9584071ff36eec9ef6/Screenshot%202025-06-22%20181623.png)
 
 ### BROWSE PAGE
 
