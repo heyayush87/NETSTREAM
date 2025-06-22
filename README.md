@@ -45,7 +45,7 @@ https://netflix-gemini-4inx.vercel.app/
 ### SEARCH PAGE
 
 
-![Gemini Suggestion ](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202025-03-29%20182059.png)
+![Gemini Suggestion ](https://github.com/heyayush87/NETSTREAM/blob/f68c503694c51a67955801a03b3dd5c2d881b469/Screenshot%202025-06-22%20181610.png)
 
 
 ---
