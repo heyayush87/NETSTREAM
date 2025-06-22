@@ -84,10 +84,10 @@ const LoginPage = () => {
           </button>
           {use?.photoURL && (
             <img
-              className="hidden md:block w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
+              className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full object-cover"
               alt="User-Icon"
               src={use.photoURL}
-              loading="lazy" 
+              loading="lazy"
             />
           )}
           <button
