@@ -36,7 +36,7 @@ https://netflix-gemini-4inx.vercel.app/
 
 ### BROWSE PAGE
 
-![Browse Page](https://github.com/heyayush87/NETFLIX_GEMINI/blob/7451681e770854e9537129d8ad15e598b8efe457/Screenshot%202024-11-29%20174841.png)
+![Browse Page](https://github.com/heyayush87/NETSTREAM/blob/8075241fa9b1e7a8dd6a74b200026ca60a6ed7af/Screenshot%202025-06-22%20181543.png)
 
 ### MOVIE LIST
 
