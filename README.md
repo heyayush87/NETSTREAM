@@ -22,7 +22,6 @@ https://netflix-gemini-4inx.vercel.app/
 
 • **Multi-Language Support**: Personalize your experience with language support for Hindi, English, and Spanish.
 
-• **Lightning-Fast Performance**: NetflixGPT is optimized with memoization, guaranteeing lightning-fast results.
 
 ---
 
