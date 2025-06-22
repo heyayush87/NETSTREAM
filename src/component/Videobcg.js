@@ -7,18 +7,17 @@ const Videobcg = ({ movieid }) => {
 
   return (
     <div className="absolute top-0 left-0 w-full h-full z-0">
-      <iframe
-        className="w-full h-full object-cover"
-        src={
-          "https://www.youtube-nocookie.com/embed/" +
-          trailerVideo?.key +
-          "?&autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&showinfo=0"
-        }
-        title="YouTube video player"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-      ></iframe>
+      {trailerVideo?.key && (
+        <iframe
+          className="w-full h-full object-cover"
+          src={`https://www.youtube-nocookie.com/embed/${trailerVideo.key}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&playsinline=1`}
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+        ></iframe>
+      )}
     </div>
   );
 };

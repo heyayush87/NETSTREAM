@@ -59,6 +59,7 @@ const LoginPage = () => {
         className="w-20 sm:w-28 md:w-32 mx-0"
         src={netflixlogo}
         alt="netflix-logo"
+        loading="lazy"
       />
 
       {use && (
@@ -86,6 +87,7 @@ const LoginPage = () => {
               className="hidden md:block w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
               alt="User-Icon"
               src={use.photoURL}
+              loading="lazy" 
             />
           )}
           <button
