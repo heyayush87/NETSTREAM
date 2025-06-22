@@ -10,7 +10,7 @@ https://netflix-gemini-4inx.vercel.app/
 
 ## 🚀 𝐍𝐞𝐭𝐟𝐥𝐢𝐱-𝐆emini 𝐊𝐞𝐲 𝐅𝐞𝐚𝐭𝐮𝐫𝐞𝐬 🚀🚀
 
-• **AI-Powered Recommendations**: NetflixGPT uses Gemini 1.5 flash to analyze your viewing history and preferences, delivering personalized movie recommendations based on factors like year, cast, genre, and more!
+• **AI-Powered Recommendations**: NETSTREAM uses Gemini 1.5 flash to analyze your viewing history and preferences, delivering personalized movie recommendations based on factors like year, cast, genre, and more!
 
 • **Sleek Design & User-Friendly**: Crafted with React and Tailwind CSS, NetflixGPT offers a stunning, intuitive interface that simplifies your movie search.
 
@@ -18,7 +18,7 @@ https://netflix-gemini-4inx.vercel.app/
 
 • **Secure and Privacy First**: Firebase provides top-notch user authentication, while Protected Routes ensure your data remains private and secure.
 
-• **Huge Movie Database**: With integration to TMDB, NetflixGPT provides access to an extensive library of films from around the world.
+• **Huge Movie Database**: With integration to TMDB, Gemini provides access to an extensive library of films from around the world.
 
 • **Multi-Language Support**: Personalize your experience with language support for Hindi, English, and Spanish.
 
