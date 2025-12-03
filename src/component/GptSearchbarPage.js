@@ -1,12 +1,12 @@
 import React, { useRef, useState } from "react";
 import lang from "../utils/LanguageConstant";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  API_OPTIONS,
-  Gemini_Key
-} from "../utils/constant";
+import { API_OPTIONS } from "../utils/constant";
 import { addGptMovieResult } from "../utils/GptSlice";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Gemini from "../utils/Gemini";
+
+
+
 
 const GptSearchbarPage = () => {
   const langKey = useSelector((store) => store.Config.lang);
@@ -56,48 +56,36 @@ const GptSearchbarPage = () => {
         query +
         ". Only give me 10 movies, comma-separated, like this format: 'Movie1, Movie2, Movie3, Movie4, Movie5'.";
 
-      const genAI = new GoogleGenerativeAI(Gemini_Key);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = Gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-      let result;
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          result = await model.generateContent(gptQuery);
-          break;
-        } catch (error) {
-          if (error.message.includes("429")) {
-            console.warn("Rate limit hit, retrying in 5 seconds...");
-            await new Promise((resolve) => setTimeout(resolve, 5000));
-            retries--;
-          } else {
-            throw error;
-          }
-        }
-      }
-
-      if (
-        !result ||
-        !result.response ||
-        typeof result.response.text !== "function"
-      ) {
-        throw new Error("Invalid response from Gemini API");
-      }
-
+      const result = await model.generateContent(gptQuery);
       const text = await result.response.text();
-      const gptMovies = text.split(",").map((movie) => movie.trim());
+
+      const gptMovies = text.split(",").map((movie) => movie.trim()).filter(m => m.length > 0);
 
       if (gptMovies.length === 0) {
-        throw new Error("No movies found in GPT response.");
+        throw new Error("No movies found in GPT response. Please try a different search.");
       }
+
+      console.log("GPT suggested movies:", gptMovies);
 
       const promiseArray = gptMovies.map((movie) => searchMovieTmdb(movie));
       const movieResults = await Promise.all(promiseArray);
 
+      // Filter out empty results but keep the structure aligned with movieNames
+      const filteredMovieResults = movieResults.filter((result) => result.length > 0);
+      const validMovieNames = gptMovies.filter(
+        (_, index) => movieResults[index] && movieResults[index].length > 0
+      );
+
+      if (filteredMovieResults.length === 0) {
+        throw new Error("No valid movies found from search results.");
+      }
+
       dispatch(
         addGptMovieResult({
-          movieNames: gptMovies,
-          movieResults: movieResults.filter((result) => result.length > 0),
+          movieNames: validMovieNames,
+          movieResults: filteredMovieResults,
         })
       );
     } catch (error) {
