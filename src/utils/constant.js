@@ -29,4 +29,4 @@ export const Supported_Languages = [
 // export const OPENAI_KEY = process.env.REACT_APP_OPENAI_KEY; // OpenAI API Key
 // Note: Gemini_Key should be accessed directly from process.env.REACT_APP_GEMINI_KEY in components
 // to ensure it's read at runtime, not build time
-export const Gemini_Key = process.env.REACT_APP_GEMINI_KEY || ""; // Gemini API Key
+

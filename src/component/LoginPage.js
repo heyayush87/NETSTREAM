@@ -80,7 +80,7 @@ const LoginPage = () => {
             className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-semibold text-white rounded bg-green-600 hover:bg-green-700 transition w-auto"
             onClick={handleGptSearchClick}
           >
-            {showGpt ? "HoMe PaGe" : "GeMiNi SeArCh"}
+            {showGpt ? "HoMe PaGe" : " AI  SeArCh"}
           </button>
           {use?.photoURL && (
             <img
