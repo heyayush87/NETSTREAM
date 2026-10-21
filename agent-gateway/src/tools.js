@@ -166,6 +166,42 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "create_watch_party",
+      description:
+        "Find movies a whole group will enjoy. Use when the user mentions friends, family, a date, roommates, or 'we'. " +
+        "Collect each person's likes and hard no's from the conversation; ask at most one question if a member has nothing.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "members"],
+        properties: {
+          name: { type: "string", maxLength: 50 },
+          members: {
+            type: "array",
+            minItems: 2,
+            maxItems: 6,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["name"],
+              properties: {
+                name: { type: "string", maxLength: 30 },
+                likes_genres: { type: "array", items: genreEnum, maxItems: 5 },
+                hard_no_genres: { type: "array", items: genreEnum, maxItems: 5 },
+                loved_titles: { type: "array", items: { type: "string" }, maxItems: 3 },
+              },
+            },
+          },
+          max_runtime_minutes: { type: "integer", minimum: 60, maximum: 240 },
+          services: { type: "array", items: { type: "string" }, maxItems: 5, description: "Streaming services the group has (free text, matched like streaming_on)." },
+          region: { type: "string", pattern: "^[A-Z]{2}$", description: "ISO 3166-1 country. Omit to use the user's region." },
+        },
+      },
+    },
+  },
 ];
 
 // Intensity proxy for ordering: horror/thriller/action/war push up, family/animation/comedy/romance pull down.
@@ -184,6 +220,38 @@ const titleMatches = (want, hit) => {
   });
 };
 const hitYear = (m) => Number((m.release_date || "").slice(0, 4)) || null;
+
+// ── Watch party scoring ──────────────────────────────────────────────────────
+export const PARTY_MAX_CANDIDATES = 8;
+const PARTY_VERIFY_CAP = 12; // recommendation-sourced movies need a details/providers lookup to honour constraints
+const prettyGenre = (g) => g.replace(/_/g, " ");
+
+/**
+ * Least-misery ranking. Each member scores a movie 1 (hits a liked genre or comes from their
+ * loved-title recommendations), 0 (they stated likes and it has none) or 0.5 (they stated no
+ * likes at all, so they're neutral). Rank by the WORST member first so nobody gets stuck with
+ * something they dislike, then by the mean + a small rating bonus.
+ */
+export function scoreForParty(movies, members, seedFor = new Map()) {
+  return movies
+    .map((m) => {
+      const per = members.map((mem, i) => {
+        const likes = mem.likes_genres || [];
+        const hasTaste = likes.length > 0 || (mem.loved_titles || []).length > 0;
+        const genreHit = likes.find((g) => m.genres.includes(g));
+        const seed = seedFor.get(m.id)?.get(i);
+        if (genreHit) return { score: 1, why: `${mem.name}: ${prettyGenre(genreHit)} ✓` };
+        if (seed) return { score: 1, why: `${mem.name}: from '${seed}' recs` };
+        if (!hasTaste) return { score: 0.5, why: `${mem.name}: open to anything` };
+        return { score: 0, why: `${mem.name}: not their usual pick` };
+      });
+      const min = Math.min(...per.map((p) => p.score));
+      const mean = per.reduce((s, p) => s + p.score, 0) / per.length;
+      const fitScore = Math.round((mean + 0.1 * ((m.rating || 6) - 6)) * 100) / 100;
+      return { ...m, fitScore, minScore: min, whyEveryone: per.map((p) => p.why).join(" · ") };
+    })
+    .sort((a, b) => b.minScore - a.minScore || b.fitScore - a.fitScore);
+}
 
 const REGION_RE = /^[A-Z]{2}$/;
 const regionOf = (a, ctx) => (REGION_RE.test(a.region) ? a.region : REGION_RE.test(ctx.region) ? ctx.region : "IN");
@@ -334,6 +402,113 @@ const EXECUTORS = {
     return {
       result: cands.map((c) => `${c.id}|${c.title} (${c.year ?? "?"}) conf=${c.confidence}`),
       directive: { type: "SHOW_CANDIDATES", payload: { query: String(a.description || "").slice(0, 500), candidates: cands } },
+    };
+  },
+
+  async create_watch_party(a, ctx) {
+    const { tmdb } = ctx;
+    const members = (a.members || []).slice(0, 6);
+    if (members.length < 2) return { result: { ok: false, note: "A watch party needs at least 2 people." } };
+    const region = regionOf(a, ctx);
+
+    // Hard no's are vetoes from anyone in the group.
+    const excluded = [...new Set(members.flatMap((m) => m.hard_no_genres || []))];
+    const likes = [...new Set(members.flatMap((m) => m.likes_genres || []))].filter((g) => !excluded.includes(g));
+
+    let providerFilter = {};
+    let providerIds = null;
+    let unmatched = [];
+    if (a.services?.length) {
+      const match = matchProviders(a.services, await tmdb.providerCatalog(region));
+      unmatched = match.unmatched;
+      if (!match.ids.length) {
+        return { result: { ok: false, region, unmatched_services: unmatched, note: "None of those services were found in this region's catalog. Tell the user." } };
+      }
+      providerIds = new Set(match.ids);
+      providerFilter = { with_watch_providers: match.ids.join("|"), watch_region: region, with_watch_monetization_types: "flatrate" };
+    }
+
+    // Pool 1: discover on the union of likes. Already honours runtime/providers/vetoes.
+    const discovered = (
+      await tmdb.discover({
+        with_genres: genreIds(likes).join("|"), // pipe = OR
+        without_genres: genreIds(excluded).join(","),
+        "with_runtime.lte": a.max_runtime_minutes,
+        "vote_count.gte": 300,
+        sort_by: "popularity.desc",
+        ...providerFilter,
+      })
+    ).results || [];
+
+    // Pool 2: recommendations seeded by each member's loved titles. Remember who each came from.
+    const seedFor = new Map(); // movieId -> Map(memberIndex -> seed title)
+    const recPool = [];
+    await Promise.all(
+      members.flatMap((mem, i) =>
+        (mem.loved_titles || []).map(async (title) => {
+          const seed = (await tmdb.searchMovie(title).catch(() => []))[0];
+          const recs = seed ? await tmdb.recommendations(seed.id).catch(() => []) : [];
+          for (const r of recs) {
+            if (!seedFor.has(r.id)) seedFor.set(r.id, new Map());
+            seedFor.get(r.id).set(i, seed.title);
+            recPool.push(r);
+          }
+        })
+      )
+    );
+
+    const discoveredIds = new Set(discovered.map((m) => m.id));
+    const ok = (c) => c.poster_path && !c.genres.some((g) => excluded.includes(g));
+    const byId = new Map();
+    for (const m of discovered.map(toCard).filter(ok)) byId.set(m.id, m);
+
+    // Recommendation-sourced movies weren't filtered by discover, so verify constraints explicitly.
+    const needsCheck = a.max_runtime_minutes || providerIds;
+    const recCards = [...new Map(recPool.map((r) => [r.id, toCard(r)])).values()]
+      .filter((c) => ok(c) && !discoveredIds.has(c.id))
+      .sort((x, y) => (y.rating || 0) - (x.rating || 0))
+      .slice(0, PARTY_VERIFY_CAP);
+    const checked = await Promise.all(
+      recCards.map(async (c) => {
+        if (!needsCheck) return c;
+        try {
+          const [details, prov] = await Promise.all([
+            a.max_runtime_minutes ? tmdb.details(c.id) : null,
+            providerIds ? tmdb.watchProviders(c.id, region) : null,
+          ]);
+          if (details && (!details.runtime || details.runtime > a.max_runtime_minutes)) return null;
+          if (prov && !prov.flatrate.some((p) => providerIds.has(p.id))) return null;
+          return c;
+        } catch {
+          return null; // can't verify -> don't risk breaking the group's constraints
+        }
+      })
+    );
+    for (const c of checked.filter(Boolean)) byId.set(c.id, c);
+
+    const ranked = scoreForParty([...byId.values()], members, seedFor).slice(0, PARTY_MAX_CANDIDATES);
+    if (!ranked.length) {
+      return { result: { ok: false, ...(unmatched.length && { unmatched_services: unmatched }), note: "No movie satisfies everyone's vetoes and constraints. Suggest relaxing runtime or services." } };
+    }
+
+    const candidates = ranked.map(({ minScore, ...c }) => c);
+    return {
+      result: {
+        ok: true,
+        name: a.name,
+        vetoed_genres: excluded,
+        ...(unmatched.length && { unmatched_services: unmatched }),
+        top: ranked.slice(0, 5).map((c) => `${c.id}|${c.title} (${c.year ?? "?"}) ★${c.rating ?? "-"} fit=${c.fitScore} worst=${c.minScore}`),
+      },
+      directive: {
+        type: "CREATE_WATCH_PARTY_DRAFT",
+        payload: {
+          name: String(a.name || "Movie night").slice(0, 50),
+          members: members.map((m) => ({ name: String(m.name).slice(0, 30) })),
+          constraints: { maxRuntime: a.max_runtime_minutes || null, region, services: a.services || [] },
+          candidates,
+        },
+      },
     };
   },
 

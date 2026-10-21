@@ -7,6 +7,8 @@ import { setGptsearch } from "../utils/GptSlice";
 import { openPlayer } from "../utils/playerSlice";
 import { createWatchlist } from "../utils/watchlistSlice";
 import { candidatesShown } from "../utils/agentSlice";
+import { createParty } from "./party/partyService";
+import { auth } from "../utils/Firebase";
 
 const isCard = (m) => m && Number.isInteger(m.id) && typeof m.title === "string";
 
@@ -66,6 +68,27 @@ export const TOOL_HANDLERS = {
       if (!items.length) return "No verified matches";
       dispatch(candidatesShown({ query: String(payload.query || "").slice(0, 500), items }));
       return `${items.length} possible match${items.length > 1 ? "es" : ""}`;
+    },
+  },
+
+  create_watch_party: {
+    label: "Building the watch party",
+    directiveType: "CREATE_WATCH_PARTY_DRAFT",
+    // Async on purpose: the client (not the gateway) writes the party as the signed-in host,
+    // so Firestore rules apply. useMovieAgent awaits the returned label.
+    async run(payload, { navigate }) {
+      const candidates = (payload.candidates || []).filter(isCard);
+      if (!candidates.length) return "No movie fit everyone";
+      const user = auth.currentUser;
+      if (!user || user.isAnonymous) return "Sign in to create a party";
+      try {
+        const id = await createParty({ draft: { ...payload, candidates }, user });
+        navigate(`/party/${id}`);
+        return "Party ready · share the link";
+      } catch (err) {
+        console.error("create party failed", err);
+        return "Couldn't create the party";
+      }
     },
   },
 

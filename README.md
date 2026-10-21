@@ -1,6 +1,25 @@
 ## PROJECT LINK 🔗🔗
 https://netflix-gemini-4inx.vercel.app/
 
+## 🍿 AI assistant features
+
+The assistant (⌘/Ctrl+K) can show **where to watch** a movie (India-first, JustWatch data via TMDB), **identify a half-remembered movie** from a description (every candidate verified against TMDB), and run a **watch party**: it finds movies a whole group will enjoy and gives you a link where friends vote live. Architecture: [`docs/AGENT_ARCHITECTURE.md`](docs/AGENT_ARCHITECTURE.md).
+
+### One-time Firebase setup for watch parties
+
+1. **Enable Anonymous sign-in** so guests can vote without an account: Firebase console → Authentication → Sign-in method → **Anonymous** → Enable.
+2. **Create the Firestore database**: Firebase console → Firestore Database → Create database (production mode).
+3. **Deploy the rules**: `firebase deploy --only firestore:rules`
+4. Hosting needs the SPA rewrite already in `firebase.json`, so `/party/:id` links open directly.
+
+### Tests
+
+```bash
+npm test                 # React/Redux (Jest)
+npm run test:gateway     # Cloudflare Worker (node --test)
+npm run test:rules       # Firestore rules (needs Java 11+; downloads the emulator on first run)
+```
+
 ## 🚀 TechStack 🚀
 
 • React: Frontend framework for building user interfaces.  

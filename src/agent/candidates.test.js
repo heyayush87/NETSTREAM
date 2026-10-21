@@ -6,6 +6,10 @@ import player from "../utils/playerSlice";
 import { applyToolResult } from "./toolHandlers";
 import CandidatePicker from "./components/CandidatePicker";
 
+jest.mock("../utils/Firebase", () => ({ auth: { currentUser: null }, db: {} }));
+jest.mock("./party/partyService", () => ({ createParty: jest.fn() }));
+
+
 const card = { id: 137, title: "Groundhog Day", year: "1993", poster_path: "/g.jpg" };
 const evt = (payload, type = "SHOW_CANDIDATES") => ({ name: "identify_movie_from_description", ok: true, directive: { type, payload } });
 

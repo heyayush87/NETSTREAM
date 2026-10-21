@@ -12,7 +12,7 @@ const GROUPS = [
 ];
 
 // Availability block. `providers === null` means "still loading / lookup failed", not "nowhere".
-function WhereToWatch({ providers, region }) {
+export function WhereToWatch({ providers, region }) {
   const regionName = region === "IN" ? "India" : region;
   const groups = providers ? GROUPS.filter(([k]) => providers[k]?.length) : [];
   return (

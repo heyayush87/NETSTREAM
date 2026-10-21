@@ -24,7 +24,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (use) => {
-      if (use) {
+      if (use && !use.isAnonymous) {
         const { uid, email, displayName, photoURL } = use;
         dispatch(
           adduser({
@@ -36,8 +36,9 @@ const LoginPage = () => {
         );
         navigate("/browse");
       } else {
+        // Anonymous watch-party guests are not accounts: no browse access, and they stay on /party/*.
         dispatch(removeuser());
-        navigate("/");
+        if (!window.location.pathname.startsWith("/party/")) navigate("/");
       }
     });
     return () => unsubscribe();

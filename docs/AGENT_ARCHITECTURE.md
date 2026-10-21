@@ -78,6 +78,7 @@ Full JSON schemas: [`agent-gateway/src/tools.js`](../agent-gateway/src/tools.js)
 
 Region lives in `ConfigSlice.region` (default `IN`), is sent in `uiContext.region`, and the gateway validates it as `^[A-Z]{2}$`. `PlayerModal` lazily fetches providers (`/api/tmdb/movie/{id}/watch/providers`) when a card opens without them. Streaming data is by JustWatch, and the modal shows that attribution.
 | `identify_movie_from_description` | `description`, `remembered{years, language, actors}`, up to 5 `candidates{title, year, reason, confidence}` | **The model proposes, the server verifies.** Each title is searched on TMDB and only counts if the hit's title really matches (TMDB search is fuzzy, so a made-up title can still return an unrelated film). Unverified candidates are dropped. Confidence −0.2 outside the remembered year range, +0.15 if a named actor is in the cast (`/search/person` + `/person/{id}/movie_credits`). | `SHOW_CANDIDATES` → `candidatesShown`, rendered by `CandidatePicker` under the assistant message. If nothing verifies: `{found: 0}`, no directive, and the model asks one clarifying question. |
+| `create_watch_party` | `name`, 2-6 `members{name, likes_genres, hard_no_genres, loved_titles}`, `max_runtime_minutes`, `services[]`, `region` | Hard no's from anyone become vetoes (`without_genres`) for the whole group. Candidate pool = discover on the OR of everyone's likes (runtime, providers, vote floor applied) + recommendations for every loved title. Recommendation-sourced movies are re-checked for runtime and service availability (details + providers, capped at 12). Ranked **least-misery**: worst member score first, then mean + `0.1 × (rating − 6)`. Top 8 kept, each with a `whyEveryone` line. The server does **not** write to Firestore. | `CREATE_WATCH_PARTY_DRAFT` → client writes `parties/{id}` as the signed-in host, navigates to `/party/:id` |
 
 "Yes, that's it" sends a normal chat turn; the system prompt tells the model to chain `check_where_to_watch` + `filter_and_display_movies(similar_to_title)` in that single turn.
 
@@ -87,6 +88,36 @@ Design choices that keep tool calls reliable:
 - **`additionalProperties: false`** and tight bounds (`maxItems`, `minimum`/`maximum`).
 - **Tool errors are returned to the model** as `{ error }` instead of throwing, so it can retry with looser filters once.
 - **The model never sees overviews**, only `id|title (year) ★rating`. This saves tokens and closes the prompt-injection path through TMDB text.
+
+### Watch party (Firestore)
+
+The only persistent shared state in the app. The gateway stays stateless: it returns a draft, and the **client** creates the document as the signed-in host, so security rules (not the gateway) are the authority.
+
+```
+parties/{partyId}
+  hostUid, name, createdAt (ms), expiresAt (createdAt + 48h), status: "voting" | "locked"
+  constraints: { maxRuntime, region, services[] }
+  members: { [uid]: { displayName, joinedAt } }
+  candidates: [ card + { fitScore, whyEveryone } ]      // max 8, overview trimmed to 240 chars
+  votes: { [uid]: { [movieId]: 1 | -1 } }
+  winnerId: number | null
+```
+
+`firestore.rules` (registered in `firebase.json`):
+
+| Who | Can |
+|---|---|
+| Any signed-in user, incl. anonymous guests | read a party |
+| Real (non-anonymous) account | create a party, only with `hostUid == own uid`, `status: "voting"`, no votes, no winner, ≤ 8 candidates, `createdAt` within ±60s of server time and `expiresAt = createdAt + 48h` |
+| Host | change `candidates`, `status` (`voting`/`locked`) and `winnerId`, nothing else |
+| Any member (host included) | write only `members.<own uid>` (valid name) and `votes.<own uid>` (each value `1` or `-1`, ≤ 8 entries, only after joining) |
+| Everyone | nothing once `status == "locked"` or past `expiresAt`; nobody can delete |
+
+Rules use `request.resource.data.diff(resource.data).affectedKeys()` for the top-level fields and `Map.diff` on `members` / `votes` so a user can't touch another user's entry. Known limit: rules can't iterate a map, so vote *keys* aren't checked against candidate ids (a member can only add junk keys to their own vote map, capped at 8).
+
+Guests sign in anonymously on `/party/:id`. `LoginPage` treats anonymous users as signed-out for everything else (no redirect into `/browse`, `/` still needs a real account) and leaves them alone on `/party/*`. The winner is `pickWinner()` in `src/agent/party/partyLogic.js`: highest net votes, ties broken by `fitScore`.
+
+Tests: `npm run test:rules` runs `firestore-tests/rules.test.mjs` against the Firestore emulator (needs Java 11+). `npm run test:gateway` runs the Worker tests.
 
 ---
 

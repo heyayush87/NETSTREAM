@@ -59,8 +59,10 @@ export default function useMovieAgent() {
             break;
           case "tool_result": {
             // ← the tool execution callback: directive → Redux / router
-            const label = applyToolResult(data, ctx);
-            dispatch(toolFinished({ id: data.id, status: data.ok ? "done" : "error", ...(label && { label }) }));
+            const finish = (label) => dispatch(toolFinished({ id: data.id, status: data.ok ? "done" : "error", ...(label && { label }) }));
+            const out = applyToolResult(data, ctx);
+            if (out && typeof out.then === "function") out.then(finish, () => finish("Tool failed"));
+            else finish(out);
             break;
           }
           case "done":
