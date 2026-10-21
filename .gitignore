@@ -5,3 +5,8 @@ node_modules
 
 # Firebase emulator logs
 *-debug.log
+
+# Wrangler local secrets
+.dev.vars
+wrangler.log
+.wrangler/

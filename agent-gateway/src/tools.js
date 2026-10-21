@@ -253,6 +253,18 @@ export function scoreForParty(movies, members, seedFor = new Map()) {
     .sort((a, b) => b.minScore - a.minScore || b.fitScore - a.fitScore);
 }
 
+// Resolve a spoken title to one TMDB movie. TMDB ranks "avengers" by hype (an unreleased sequel can be
+// first), so without a year prefer an exact title match, most popular first, and report the near-misses.
+function resolveTitle(hits, query, year) {
+  const exact = hits.filter((m) => normTitle(m.title) === normTitle(query) || normTitle(m.original_title) === normTitle(query));
+  const pool = exact.length ? exact : hits;
+  const inYear = (m) => m.release_date?.startsWith(String(year));
+  const byYear = year && (pool.find(inYear) || hits.find(inYear)); // an explicit year beats title-match preference
+  const hit = byYear || [...pool].sort((x, y) => (y.popularity || 0) - (x.popularity || 0))[0];
+  const others = hits.filter((m) => m.id !== hit?.id).slice(0, 4).map((m) => `${m.id}|${m.title} (${(m.release_date || "").slice(0, 4) || "?"})`);
+  return { hit, others };
+}
+
 const REGION_RE = /^[A-Z]{2}$/;
 const regionOf = (a, ctx) => (REGION_RE.test(a.region) ? a.region : REGION_RE.test(ctx.region) ? ctx.region : "IN");
 const names = (list = []) => list.map((p) => p.name);
@@ -324,10 +336,11 @@ const EXECUTORS = {
   async play_or_preview_title(a, ctx) {
     const { tmdb } = ctx;
     let id = a.movie_id;
+    let others = [];
     if (!id && a.title_query) {
-      const hits = await tmdb.searchMovie(a.title_query);
-      const hit = (a.release_year && hits.find((m) => m.release_date?.startsWith(String(a.release_year)))) || hits[0];
-      id = hit?.id;
+      const r = resolveTitle(await tmdb.searchMovie(a.title_query), a.title_query, a.release_year);
+      id = r.hit?.id;
+      others = r.others;
     }
     if (!id) return { result: { ok: false, error: "Title not found on TMDB." } };
 
@@ -343,7 +356,7 @@ const EXECUTORS = {
 
     const card = { ...toCard(details), genres: (details.genres || []).map((g) => g.name), runtime: details.runtime };
     return {
-      result: { ok: true, opened: `${card.title} (${card.year})`, mode: a.mode, has_video: Boolean(video) },
+      result: { ok: true, opened: `${card.title} (${card.year})`, mode: a.mode, has_video: Boolean(video), ...(others.length && { other_matches: others }) },
       directive: {
         type: "OPEN_PLAYER",
         payload: { mode: a.mode, movie: card, videoKey: video?.key || null, providers: providers && { ...providers, region } },
@@ -515,10 +528,11 @@ const EXECUTORS = {
   async check_where_to_watch(a, ctx) {
     const { tmdb } = ctx;
     let id = a.movie_id;
+    let others = [];
     if (!id && a.title_query) {
-      const hits = await tmdb.searchMovie(a.title_query);
-      const hit = (a.release_year && hits.find((m) => m.release_date?.startsWith(String(a.release_year)))) || hits[0];
-      id = hit?.id;
+      const r = resolveTitle(await tmdb.searchMovie(a.title_query), a.title_query, a.release_year);
+      id = r.hit?.id;
+      others = r.others;
     }
     if (!id) return { result: { ok: false, error: "Title not found on TMDB." } };
 
@@ -527,7 +541,7 @@ const EXECUTORS = {
     const card = { ...toCard(details), genres: (details.genres || []).map((g) => g.name), runtime: details.runtime };
     const { link, flatrate, rent, buy } = providers;
     return {
-      result: { ok: true, title: card.title, region, stream: names(flatrate), rent: names(rent), buy: names(buy) },
+      result: { ok: true, title: card.title, region, stream: names(flatrate), rent: names(rent), buy: names(buy), ...(others.length && { other_matches: others }) },
       directive: { type: "SHOW_WATCH_PROVIDERS", payload: { movie: card, region, providers: { flatrate, rent, buy }, link } },
     };
   },

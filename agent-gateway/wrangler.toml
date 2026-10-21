@@ -4,9 +4,9 @@ compatibility_date = "2025-09-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-LLM_BASE_URL = "https://api.groq.com/openai/v1"
-# Any tool-calling model your provider offers. Check the Groq console for current ids.
-LLM_MODEL = "llama-3.3-70b-versatile"
+LLM_BASE_URL = "https://api.anthropic.com/v1"
+# Any tool-calling model your provider offers (Anthropic OpenAI-compatible endpoint here).
+LLM_MODEL = "claude-haiku-5-5"
 FIREBASE_PROJECT_ID = "netflixgpt-6b978"
 ALLOWED_ORIGINS = "http://localhost:3000,https://netflix-gemini-4inx.vercel.app"
 

@@ -99,3 +99,20 @@ test("watch-provider paths are allowlisted and the catalog is cached", async () 
   assert.deepEqual((await tmdb.watchProviders(5, "ZZ")).flatrate, []);
   await assert.rejects(tmdb.get("/account/1"), /not allowed/);
 });
+
+test("an ambiguous title resolves to the exact match, not the hyped sequel, and reports the others", async () => {
+  const hit = (id, title, year, popularity) => ({ id, title, original_title: title, release_date: `${year}-01-01`, popularity, poster_path: "/p.jpg", vote_average: 7, genre_ids: [] });
+  const hits = [
+    hit(1003596, "Avengers: Doomsday", 2026, 1087),
+    hit(299534, "Avengers: Endgame", 2019, 81),
+    hit(24428, "The Avengers", 2012, 63),
+    hit(99861, "Avengers: Age of Ultron", 2015, 52),
+    hit(9320, "The Avengers", 1998, 6),
+  ];
+  const { tmdb } = stub({ searchMovie: async () => hits, details: async (id) => ({ ...hits.find((h) => h.id === id), genres: [], runtime: 143 }) });
+  const out = await executeTool("play_or_preview_title", { title_query: "Avengers", mode: "preview" }, { tmdb });
+  assert.equal(out.directive.payload.movie.id, 24428, "exact title, most popular");
+  assert.ok(out.result.other_matches.some((m) => m.includes("Doomsday")), "alternatives are reported to the model");
+  const byYear = await executeTool("play_or_preview_title", { title_query: "Avengers", release_year: 2015, mode: "preview" }, { tmdb: stub({ searchMovie: async () => hits, details: async (id) => ({ ...hits.find((h) => h.id === id), genres: [] }) }).tmdb });
+  assert.equal(byYear.directive.payload.movie.id, 99861, "an explicit year wins even when the title is not an exact match");
+});

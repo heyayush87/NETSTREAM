@@ -12,7 +12,6 @@ export async function* streamChat(env, { messages, tools, signal }) {
       tools,
       tool_choice: "auto",
       parallel_tool_calls: true,
-      temperature: 0.4,
       max_tokens: 800,
       stream: true,
     }),

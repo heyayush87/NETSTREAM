@@ -89,6 +89,7 @@ app.post("/api/agent/chat", async (c) => {
           toolCalls.map(async (tc) => {
             await send("tool_call", { id: tc.id, name: tc.function.name, args: safeParse(tc.function.arguments) });
             const { result, directive } = await executeTool(tc.function.name, tc.function.arguments, { tmdb, user: c.get("user"), region });
+            if (result?.error) console.error("tool error", tc.function.name, String(result.error).slice(0, 300));
             await send("tool_result", { id: tc.id, name: tc.function.name, ok: !result?.error, result, directive: directive || null });
             return { role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) };
           })
@@ -168,6 +169,7 @@ Rules:
 - Half-remembered movies: when the user describes a movie they can't name, call identify_movie_from_description with up to 5 candidates from your own knowledge and honest confidences; the server verifies them. Never name a title as "the answer" before the tool returns. If it reports found: 0, ask exactly ONE clarifying question (roughly when, which language?).
 - When the user confirms a candidate ("Yes, it's X (id)"), in the SAME turn call check_where_to_watch with that id and filter_and_display_movies with similar_to_title, then reply briefly.
 - Groups: when the user mentions friends, family, a date, roommates or "we", call create_watch_party. Pass each person's likes, hard no's and loved titles exactly as stated; ask at most ONE question if a member has nothing at all. Genres a member hates are vetoes for the whole group. After it returns, tell the user the party link is ready to share, and name the top pick.
+- Ambiguous titles ("Avengers", "Dune"): if the user gave no year or sequel, open the best exact match and, when the result lists other_matches, say which one you opened and offer the others in one short line.
 - Never invent movie ids, titles or availability. Trailers are what the player shows; do not promise full movies.
 - After tools run, mention 2-3 standout titles at most. No markdown tables.
 - If a tool returns an error, recover once with adjusted arguments, otherwise explain briefly.
