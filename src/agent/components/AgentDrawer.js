@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import useMovieAgent from "../useMovieAgent";
 import { closeAgent, toggleAgent, setDraft } from "../../utils/agentSlice";
+import { openPlayer } from "../../utils/playerSlice";
+import CandidatePicker from "./CandidatePicker";
 
 const SUGGESTIONS = [
   "Mind-bending sci-fi from the 2010s",
@@ -10,6 +12,12 @@ const SUGGESTIONS = [
   "Where can I watch Interstellar?",
   "A horror marathon that escalates, 5 films",
   "Something like Parasite but less dark",
+];
+
+// Chips that prefill the input instead of sending, because the user still has to describe something.
+const DRAFT_STARTERS = [
+  { label: "Find a movie I half-remember…", draft: "I'm trying to remember a movie: " },
+  { label: "Movie night with friends", draft: "Movie night with friends: " },
 ];
 
 function ToolChip({ tool }) {
@@ -28,12 +36,21 @@ function ToolChip({ tool }) {
   );
 }
 
-function Message({ msg, streaming }) {
+function Message({ msg, streaming, busy, onPreview, onSend }) {
   const isUser = msg.role === "user";
   return (
     <div className={`flex flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
       {msg.tools?.length > 0 && (
         <div className="flex flex-wrap gap-2">{msg.tools.map((t) => <ToolChip key={t.id} tool={t} />)}</div>
+      )}
+      {msg.candidates && (
+        <CandidatePicker
+          candidates={msg.candidates.items}
+          disabled={busy}
+          onPreview={onPreview}
+          onConfirm={(c) => onSend(`Yes, it's ${c.title} (${c.id}). Show me where to watch it and similar movies.`)}
+          onNone={() => onSend("None of those. Ask me one question to narrow it down.")}
+        />
       )}
       {(msg.text || (streaming && !msg.tools?.length)) && (
         <div
@@ -134,6 +151,18 @@ const AgentDrawer = () => {
             <div className="space-y-3 pt-6">
               <p className="text-sm text-gray-400">Tell me a mood, a movie you loved, or what you want to watch.</p>
               <div className="flex flex-col gap-2">
+                {DRAFT_STARTERS.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => {
+                      dispatch(setDraft(s.draft));
+                      inputRef.current?.focus();
+                    }}
+                    className="min-h-10 rounded-lg border border-red-900/60 px-3 py-2 text-left text-sm text-gray-200 transition hover:border-red-600 hover:bg-white/5"
+                  >
+                    {s.label}
+                  </button>
+                ))}
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s}
@@ -147,7 +176,14 @@ const AgentDrawer = () => {
             </div>
           ) : (
             messages.map((m, i) => (
-              <Message key={m.id} msg={m} streaming={isStreaming && i === messages.length - 1 && m.role === "assistant"} />
+              <Message
+                key={m.id}
+                msg={m}
+                streaming={isStreaming && i === messages.length - 1 && m.role === "assistant"}
+                busy={isStreaming}
+                onPreview={(movie) => dispatch(openPlayer({ movie, mode: "preview" }))}
+                onSend={send}
+              />
             ))
           )}
           {error && (

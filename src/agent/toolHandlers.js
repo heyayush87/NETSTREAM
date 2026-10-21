@@ -6,6 +6,7 @@ import { addAgentRow } from "../utils/movieSlice";
 import { setGptsearch } from "../utils/GptSlice";
 import { openPlayer } from "../utils/playerSlice";
 import { createWatchlist } from "../utils/watchlistSlice";
+import { candidatesShown } from "../utils/agentSlice";
 
 const isCard = (m) => m && Number.isInteger(m.id) && typeof m.title === "string";
 
@@ -50,6 +51,21 @@ export const TOOL_HANDLERS = {
       if (!isCard(payload.movie)) return "Couldn't open that title";
       dispatch(openPlayer({ movie: payload.movie, videoKey: payload.videoKey, mode: payload.mode, providers: cleanProviders(payload.providers) }));
       return payload.videoKey ? `Playing ${payload.movie.title}` : `${payload.movie.title} (no trailer available)`;
+    },
+  },
+
+  identify_movie_from_description: {
+    label: "Searching my memory",
+    directiveType: "SHOW_CANDIDATES",
+    run(payload, { dispatch }) {
+      const items = (payload.candidates || []).filter(isCard).map((c) => ({
+        ...c,
+        reason: typeof c.reason === "string" ? c.reason.slice(0, 160) : "",
+        confidence: Math.min(1, Math.max(0, Number(c.confidence) || 0)),
+      }));
+      if (!items.length) return "No verified matches";
+      dispatch(candidatesShown({ query: String(payload.query || "").slice(0, 500), items }));
+      return `${items.length} possible match${items.length > 1 ? "es" : ""}`;
     },
   },
 

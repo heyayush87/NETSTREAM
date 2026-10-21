@@ -51,6 +51,11 @@ const agentSlice = createSlice({
       const t = last?.tools.find((x) => x.id === a.payload.id);
       if (t) Object.assign(t, a.payload);
     },
+    // Verified "is it this?" candidates render under the assistant message that produced them.
+    candidatesShown: (s, a) => {
+      const last = s.messages[s.messages.length - 1];
+      if (last?.role === "assistant") last.candidates = a.payload;
+    },
     turnCompleted: (s, a) => {
       s.status = "idle";
       s.transcript = [...s.transcript, ...a.payload].slice(-MAX_TRANSCRIPT);
@@ -73,6 +78,6 @@ const agentSlice = createSlice({
 
 export const {
   openAgent, closeAgent, toggleAgent, setDraft, turnStarted, textDelta, toolStarted,
-  toolFinished, turnCompleted, turnFailed, turnAborted, resetAgent,
+  toolFinished, candidatesShown, turnCompleted, turnFailed, turnAborted, resetAgent,
 } = agentSlice.actions;
 export default agentSlice.reducer;

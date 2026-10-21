@@ -18,6 +18,8 @@ const ALLOWED = [
   /^\/search\/(movie|keyword)$/,
   /^\/movie\/\d+(\/(videos|recommendations|similar|watch\/providers))?$/,
   /^\/watch\/providers\/movie$/,
+  /^\/search\/person$/,
+  /^\/person\/\d+\/movie_credits$/,
   /^\/movie\/(now_playing|popular|top_rated|upcoming)$/,
 ];
 
@@ -76,6 +78,9 @@ export function createTmdb(env) {
   return {
     get,
     providerCatalog,
+    searchPersonId: async (name) => (await get("/search/person", { query: name, include_adult: false, page: 1 })).results?.[0]?.id ?? null,
+    // Ids of every movie the person is credited in as cast.
+    castMovieIds: async (personId) => new Set(((await get(`/person/${personId}/movie_credits`)).cast || []).map((m) => m.id)),
     watchProviders: async (id, region = "IN") => {
       const r = (await get(`/movie/${id}/watch/providers`)).results?.[region] || {};
       return {

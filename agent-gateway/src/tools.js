@@ -123,11 +123,67 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "identify_movie_from_description",
+      description:
+        "Identify a movie the user only vaguely remembers (plot fragments, a scene, an actor, roughly when). " +
+        "Propose up to 5 candidate titles you believe match, each with a short reason. The server verifies them against TMDB.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        required: ["description", "candidates"],
+        properties: {
+          description: { type: "string", maxLength: 500 },
+          remembered: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              approx_year_from: { type: "integer" },
+              approx_year_to: { type: "integer" },
+              language: { type: "string", pattern: "^[a-z]{2}$" },
+              actors: { type: "array", items: { type: "string" }, maxItems: 3 },
+            },
+          },
+          candidates: {
+            type: "array",
+            minItems: 1,
+            maxItems: 5,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["title", "reason", "confidence"],
+              properties: {
+                title: { type: "string" },
+                year: { type: "integer" },
+                reason: { type: "string", maxLength: 160, description: "Which remembered detail matches. No spoilers beyond what the user said." },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 ];
 
 // Intensity proxy for ordering: horror/thriller/action/war push up, family/animation/comedy/romance pull down.
 const INTENSITY = { horror: 3, thriller: 2, war: 2, action: 1.5, crime: 1, mystery: 1, family: -2, animation: -1.5, comedy: -1, romance: -1, music: -1 };
 const intensity = (c) => c.genres.reduce((s, g) => s + (INTENSITY[g] || 0), 0);
+
+// Verification helpers for identify_movie_from_description. TMDB search is fuzzy and returns
+// *something* for almost any string, so a hit only counts if its title actually matches.
+const normTitle = (s) => String(s || "").toLowerCase().replace(/^(the|a|an)\s+/, "").replace(/[^a-z0-9]/g, "");
+const titleMatches = (want, hit) => {
+  const w = normTitle(want);
+  if (!w) return false;
+  return [hit.title, hit.original_title].some((t) => {
+    const h = normTitle(t);
+    return h === w || (Math.min(h.length, w.length) >= 5 && (h.includes(w) || w.includes(h)));
+  });
+};
+const hitYear = (m) => Number((m.release_date || "").slice(0, 4)) || null;
 
 const REGION_RE = /^[A-Z]{2}$/;
 const regionOf = (a, ctx) => (REGION_RE.test(a.region) ? a.region : REGION_RE.test(ctx.region) ? ctx.region : "IN");
@@ -224,6 +280,60 @@ const EXECUTORS = {
         type: "OPEN_PLAYER",
         payload: { mode: a.mode, movie: card, videoKey: video?.key || null, providers: providers && { ...providers, region } },
       },
+    };
+  },
+
+  async identify_movie_from_description(a, { tmdb }) {
+    const proposed = (a.candidates || []).slice(0, 5);
+    const rem = a.remembered || {};
+
+    // 1) Verify every proposal against TMDB. Unverified titles are dropped, never shown.
+    const verified = (
+      await Promise.all(
+        proposed.map(async (c) => {
+          const hits = (await tmdb.searchMovie(c.title).catch(() => [])).filter((m) => m.poster_path && titleMatches(c.title, m));
+          const near = c.year && hits.find((m) => Math.abs((hitYear(m) || 0) - c.year) <= 1);
+          const hit = near || hits[0];
+          if (!hit) return null;
+          return {
+            ...toCard(hit),
+            reason: String(c.reason || "").slice(0, 160),
+            confidence: Math.min(1, Math.max(0, Number(c.confidence) || 0)),
+          };
+        })
+      )
+    ).filter(Boolean);
+
+    // Two proposals can resolve to the same film; keep the more confident one.
+    const byId = new Map();
+    for (const v of verified) if (!byId.has(v.id) || byId.get(v.id).confidence < v.confidence) byId.set(v.id, v);
+    let cands = [...byId.values()];
+    if (!cands.length) return { result: { found: 0 } };
+
+    // 2) Year-range penalty.
+    const { approx_year_from: from, approx_year_to: to } = rem;
+    if (from || to) {
+      cands = cands.map((c) => {
+        const y = Number(c.year);
+        const outside = y && ((from && y < from) || (to && y > to));
+        return outside ? { ...c, confidence: c.confidence - 0.2 } : c;
+      });
+    }
+
+    // 3) Actor boost: only when the named actor is really in the candidate's cast.
+    for (const name of (rem.actors || []).slice(0, 3)) {
+      const personId = await tmdb.searchPersonId(name).catch(() => null);
+      const castIds = personId ? await tmdb.castMovieIds(personId).catch(() => null) : null;
+      if (castIds) cands = cands.map((c) => (castIds.has(c.id) ? { ...c, confidence: c.confidence + 0.15 } : c));
+    }
+
+    cands = cands
+      .map((c) => ({ ...c, confidence: Math.round(Math.min(1, Math.max(0, c.confidence)) * 100) / 100 }))
+      .sort((x, y) => y.confidence - x.confidence);
+
+    return {
+      result: cands.map((c) => `${c.id}|${c.title} (${c.year ?? "?"}) conf=${c.confidence}`),
+      directive: { type: "SHOW_CANDIDATES", payload: { query: String(a.description || "").slice(0, 500), candidates: cands } },
     };
   },
 
