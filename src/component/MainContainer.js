@@ -13,7 +13,7 @@ const MainContainer = () => {
   return (
     <div className="relative w-full aspect-video min-h-dvh overflow-hidden">
       <Videobcg movieid={id} />
-      <VideoTitle title={original_title} overview={overview} />
+      <VideoTitle title={original_title} overview={overview} movie={mainMovies} />
     </div>
   );
 };

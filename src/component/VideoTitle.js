@@ -1,4 +1,19 @@
-const VideoTitle = ({ title, overview }) => {
+import { useDispatch, useSelector } from "react-redux";
+import { openPlayer } from "../utils/playerSlice";
+import { openAgent } from "../utils/agentSlice";
+
+const VideoTitle = ({ title, overview, movie }) => {
+  const dispatch = useDispatch();
+  const trailerKey = useSelector((s) => s.movies?.Trailer?.key);
+  const card = movie && {
+    id: movie.id,
+    title: movie.title || title,
+    year: (movie.release_date || "").slice(0, 4),
+    rating: movie.vote_average ? Math.round(movie.vote_average * 10) / 10 : null,
+    overview,
+    backdrop_path: movie.backdrop_path,
+    poster_path: movie.poster_path,
+  };
   return (
     <>
       {/* Background Gradient */}
@@ -15,11 +30,15 @@ const VideoTitle = ({ title, overview }) => {
 
         {/* Buttons - positioned higher to avoid overlap */}
         <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <button className="bg-white text-black py-2 md:py-3 px-6 md:px-10 text-sm md:text-lg rounded-lg hover:bg-opacity-80 transition font-semibold shadow">
+          <button
+            onClick={() => card && dispatch(openPlayer({ movie: card, videoKey: trailerKey, mode: "play" }))}
+            className="bg-white text-black py-2 md:py-3 px-6 md:px-10 text-sm md:text-lg rounded-lg hover:bg-opacity-80 transition font-semibold shadow">
             ▶️ Play
           </button>
-          <button className="hidden md:inline-block bg-gray-500 text-white py-2 md:py-3 px-6 md:px-10 text-sm md:text-lg bg-opacity-60 rounded-lg transition font-semibold shadow">
-            More Info
+          <button
+            onClick={() => dispatch(openAgent(`Find movies like ${title}`))}
+            className="hidden md:inline-block bg-gray-500 text-white py-2 md:py-3 px-6 md:px-10 text-sm md:text-lg bg-opacity-60 rounded-lg transition font-semibold shadow">
+            ✦ More like this
           </button>
         </div>
       </div>

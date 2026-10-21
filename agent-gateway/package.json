@@ -1,0 +1,18 @@
+{
+  "name": "netstream-agent-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run --outdir dist",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.13.13",
+    "jose": "^6.2.13"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.3"
+  }
+}

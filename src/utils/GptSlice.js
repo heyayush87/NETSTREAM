@@ -11,6 +11,10 @@ const GptSlice = createSlice({
     toggleGptsearch: (state) => {
       state.showgptsearch = !state.showgptsearch;
     },
+    // Deterministic setter for programmatic navigation (the agent can't "toggle" safely).
+    setGptsearch: (state, action) => {
+      state.showgptsearch = Boolean(action.payload);
+    },
     addGptMovieResult: (state, action) => {
       state.movieResults = Array.isArray(action.payload.movieResults)
         ? action.payload.movieResults
@@ -22,5 +26,5 @@ const GptSlice = createSlice({
   },
 });
 
-export const { toggleGptsearch, addGptMovieResult } = GptSlice.actions;
+export const { toggleGptsearch, setGptsearch, addGptMovieResult } = GptSlice.actions;
 export default GptSlice.reducer;

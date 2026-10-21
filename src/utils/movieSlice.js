@@ -8,6 +8,7 @@ const movieSlice = createSlice({
     PopularMovies: null,
     TrendingMovies: null,
     UpcomingMovies: null,
+    agentRows: [], // rows created by the AI agent: { rowId, title, subtitle, movies }
   },
 
   reducers: {
@@ -26,6 +27,14 @@ const movieSlice = createSlice({
     addUpcomingMovies: (state, action) => {
       state.UpcomingMovies = action.payload;
     },
+    addAgentRow: (state, action) => {
+      const { placement, ...row } = action.payload;
+      const rest = placement === "replace_all" ? [] : state.agentRows;
+      state.agentRows = [row, ...rest].slice(0, 5); // cap so the page doesn't grow forever
+    },
+    removeAgentRow: (state, action) => {
+      state.agentRows = state.agentRows.filter((r) => r.rowId !== action.payload);
+    },
   },
 });
 
@@ -35,5 +44,7 @@ export const {
   addPopularMovies,
   addTrendingMovies,
   addUpcomingMovies,
+  addAgentRow,
+  removeAgentRow,
 } = movieSlice.actions;
 export default movieSlice.reducer;
