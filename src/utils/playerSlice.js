@@ -9,15 +9,17 @@ const playerSlice = createSlice({
     mode: "preview", // preview (muted, details) | play (fullscreen, sound)
     movie: null,
     videoKey: null,
+    providers: null, // { region, link, flatrate[], rent[], buy[] } once known; null = not fetched yet
     queue: [], // movie cards, used when playing a watchlist
     queueIndex: 0,
   },
   reducers: {
     openPlayer: (s, a) => {
-      const { movie, videoKey = null, mode = "preview", queue, queueIndex = 0 } = a.payload;
+      const { movie, videoKey = null, mode = "preview", providers = null, queue, queueIndex = 0 } = a.payload;
       s.isOpen = true;
       s.movie = movie;
       s.videoKey = videoKey;
+      s.providers = providers;
       s.mode = mode;
       if (queue) {
         s.queue = queue;
@@ -27,12 +29,16 @@ const playerSlice = createSlice({
     setPlayerVideo: (s, a) => {
       s.videoKey = a.payload;
     },
+    setPlayerProviders: (s, a) => {
+      s.providers = a.payload;
+    },
     advanceQueue: (s, a) => {
       const next = s.queueIndex + (a.payload ?? 1);
       if (next < 0 || next >= s.queue.length) return;
       s.queueIndex = next;
       s.movie = s.queue[next];
       s.videoKey = null; // PlayerModal resolves the trailer for queued items
+      s.providers = null;
     },
     closePlayer: (s) => {
       s.isOpen = false;
@@ -42,5 +48,5 @@ const playerSlice = createSlice({
   },
 });
 
-export const { openPlayer, setPlayerVideo, advanceQueue, closePlayer } = playerSlice.actions;
+export const { openPlayer, setPlayerVideo, setPlayerProviders, advanceQueue, closePlayer } = playerSlice.actions;
 export default playerSlice.reducer;

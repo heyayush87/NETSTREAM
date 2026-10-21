@@ -1,12 +1,57 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { closePlayer, advanceQueue, setPlayerVideo } from "../../utils/playerSlice";
+import { closePlayer, advanceQueue, setPlayerVideo, setPlayerProviders } from "../../utils/playerSlice";
 import { IMG_CDN_URL } from "../../utils/constant";
-import { fetchTrailerKey } from "../tmdbClient";
+import { fetchTrailerKey, fetchWatchProviders } from "../tmdbClient";
+
+const LOGO_CDN = "https://image.tmdb.org/t/p/w92";
+const GROUPS = [
+  ["flatrate", "Stream"],
+  ["rent", "Rent"],
+  ["buy", "Buy"],
+];
+
+// Availability block. `providers === null` means "still loading / lookup failed", not "nowhere".
+function WhereToWatch({ providers, region }) {
+  const regionName = region === "IN" ? "India" : region;
+  const groups = providers ? GROUPS.filter(([k]) => providers[k]?.length) : [];
+  return (
+    <section className="space-y-2 border-t border-white/10 pt-3" aria-label="Where to watch">
+      <h3 className="text-sm font-semibold text-gray-200">Where to watch</h3>
+      {!providers ? (
+        <p className="text-sm text-gray-500">Checking availability…</p>
+      ) : groups.length === 0 ? (
+        <p className="text-sm text-gray-400">Not streaming in {regionName} right now</p>
+      ) : (
+        groups.map(([key, label]) => (
+          <div key={key} className="flex flex-wrap items-center gap-2">
+            <span className="w-14 text-xs uppercase tracking-wide text-gray-500">{label}</span>
+            {providers[key].map((p) => {
+              const logo = p.logo_path ? (
+                <img src={`${LOGO_CDN}${p.logo_path}`} alt={p.name} title={p.name} className="h-10 w-10 rounded-lg object-cover" loading="lazy" />
+              ) : (
+                <span className="flex h-10 items-center rounded-lg bg-gray-800 px-3 text-xs">{p.name}</span>
+              );
+              return providers.link ? (
+                <a key={p.id ?? p.name} href={providers.link} target="_blank" rel="noopener noreferrer" aria-label={`${p.name} — ${label}`}>
+                  {logo}
+                </a>
+              ) : (
+                <span key={p.id ?? p.name}>{logo}</span>
+              );
+            })}
+          </div>
+        ))
+      )}
+      <p className="text-[11px] text-gray-500">Streaming data by JustWatch</p>
+    </section>
+  );
+}
 
 const PlayerModal = () => {
   const dispatch = useDispatch();
-  const { isOpen, mode, movie, videoKey, queue, queueIndex } = useSelector((s) => s.player);
+  const { isOpen, mode, movie, videoKey, providers, queue, queueIndex } = useSelector((s) => s.player);
+  const region = useSelector((s) => s.Config?.region) || "IN";
 
   // Items opened from a card or a watchlist arrive without a trailer key — resolve it here.
   useEffect(() => {
@@ -17,6 +62,16 @@ const PlayerModal = () => {
       cancelled = true;
     };
   }, [isOpen, movie, videoKey, dispatch]);
+
+  // Cards and watchlist items open without availability — fetch it lazily for the user's region.
+  useEffect(() => {
+    if (!isOpen || !movie || providers) return;
+    let cancelled = false;
+    fetchWatchProviders(movie.id, region).then((p) => !cancelled && p && dispatch(setPlayerProviders(p)));
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, movie, providers, region, dispatch]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -40,7 +95,7 @@ const PlayerModal = () => {
       aria-label={`${movie.title} player`}
     >
       <div
-        className={`relative w-full overflow-hidden bg-gray-950 text-white shadow-2xl ${isPlay ? "h-full sm:h-auto sm:max-w-6xl" : "max-w-3xl rounded-xl"}`}
+        className={`relative max-h-full w-full overflow-y-auto bg-gray-950 text-white shadow-2xl ${isPlay ? "h-full sm:h-auto sm:max-w-6xl" : "max-w-3xl rounded-xl"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative aspect-video w-full bg-black">
@@ -64,6 +119,7 @@ const PlayerModal = () => {
             </span>
           </div>
           {!isPlay && <p className="line-clamp-3 text-sm text-gray-300">{movie.overview}</p>}
+          <WhereToWatch providers={providers} region={providers?.region || region} />
           {queue.length > 1 && (
             <div className="flex items-center gap-3 pt-2 text-sm">
               <button disabled={queueIndex === 0} onClick={() => dispatch(advanceQueue(-1))} className="rounded bg-gray-800 px-3 py-1.5 disabled:opacity-30">

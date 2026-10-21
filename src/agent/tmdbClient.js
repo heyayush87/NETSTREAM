@@ -12,6 +12,18 @@ async function tmdbGet(path) {
   return res.json();
 }
 
+const shape = (list = []) => list.map((p) => ({ id: p.provider_id, name: p.provider_name, logo_path: p.logo_path || null }));
+
+/** Where a movie streams/rents/sells in a region. Resolves to an empty block (never throws) so the UI can say "not streaming". */
+export async function fetchWatchProviders(movieId, region = "IN") {
+  try {
+    const r = (await tmdbGet(`/movie/${movieId}/watch/providers`)).results?.[region] || {};
+    return { region, link: r.link || null, flatrate: shape(r.flatrate), rent: shape(r.rent), buy: shape(r.buy) };
+  } catch {
+    return null; // lookup failed: stay in the "unknown" state rather than claiming nothing streams
+  }
+}
+
 export async function fetchTrailerKey(movieId) {
   try {
     const { results = [] } = await tmdbGet(`/movie/${movieId}/videos`);

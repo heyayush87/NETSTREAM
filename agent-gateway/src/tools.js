@@ -7,7 +7,7 @@
 //   • client handler (src/agent/toolHandlers.js) – validates the directive and dispatches
 //     Redux actions / navigation. The model never touches the DOM or the store directly.
 
-import { GENRE_NAMES, genreIds, toCard, forModel } from "./tmdb.js";
+import { GENRE_NAMES, genreIds, toCard, forModel, matchProviders } from "./tmdb.js";
 
 const genreEnum = { type: "string", enum: GENRE_NAMES };
 
@@ -44,6 +44,11 @@ export const TOOL_SCHEMAS = [
             enum: ["popularity.desc", "vote_average.desc", "primary_release_date.desc", "revenue.desc"],
             default: "popularity.desc",
           },
+          streaming_on: {
+            type: "array", items: { type: "string" }, maxItems: 5,
+            description: "Streaming services the movies must be on (subscription), free text e.g. ['Netflix','Prime Video','JioHotstar']. Matched server-side. Applies to discover-style requests, not title_query/similar_to_title.",
+          },
+          region: { type: "string", pattern: "^[A-Z]{2}$", description: "ISO 3166-1 country for streaming_on. Omit to use the user's region." },
           placement: { type: "string", enum: ["top", "replace_all"], default: "top", description: "Insert as first row, or clear previous agent rows." },
           limit: { type: "integer", minimum: 5, maximum: 20, default: 20 },
         },
@@ -99,17 +104,58 @@ export const TOOL_SCHEMAS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "check_where_to_watch",
+      description:
+        "Tell the user which services stream, rent or sell a movie in their region. Use for 'where can I watch X', 'is X on Netflix'.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        required: [],
+        properties: {
+          movie_id: { type: "integer", description: "TMDB movie id from earlier tool results or the UI context." },
+          title_query: { type: "string", description: "Used only if movie_id is unknown." },
+          release_year: { type: "integer", description: "Disambiguates title_query." },
+          region: { type: "string", pattern: "^[A-Z]{2}$", description: "ISO 3166-1 country. Omit to use the user's region." },
+        },
+      },
+    },
+  },
 ];
 
 // Intensity proxy for ordering: horror/thriller/action/war push up, family/animation/comedy/romance pull down.
 const INTENSITY = { horror: 3, thriller: 2, war: 2, action: 1.5, crime: 1, mystery: 1, family: -2, animation: -1.5, comedy: -1, romance: -1, music: -1 };
 const intensity = (c) => c.genres.reduce((s, g) => s + (INTENSITY[g] || 0), 0);
 
+const REGION_RE = /^[A-Z]{2}$/;
+const regionOf = (a, ctx) => (REGION_RE.test(a.region) ? a.region : REGION_RE.test(ctx.region) ? ctx.region : "IN");
+const names = (list = []) => list.map((p) => p.name);
+
 const dedupe = (cards) => [...new Map(cards.map((c) => [c.id, c])).values()];
 
 const EXECUTORS = {
-  async filter_and_display_movies(a, { tmdb }) {
+  async filter_and_display_movies(a, ctx) {
+    const { tmdb } = ctx;
     let raw;
+    let unmatched = [];
+    let providerFilter = {};
+    if (a.streaming_on?.length && !a.title_query && !a.similar_to_title) {
+      const region = regionOf(a, ctx);
+      const match = matchProviders(a.streaming_on, await tmdb.providerCatalog(region));
+      unmatched = match.unmatched;
+      if (!match.ids.length) {
+        // Honest empty state: tell the model which services are unknown instead of showing an unfiltered row.
+        return { result: { shown: 0, region, unmatched_services: unmatched, note: "None of those services were found in this region's catalog. Tell the user." } };
+      }
+      providerFilter = {
+        with_watch_providers: match.ids.join("|"), // pipe = OR
+        watch_region: region,
+        with_watch_monetization_types: "flatrate",
+      };
+    }
+
     if (a.title_query) {
       raw = await tmdb.searchMovie(a.title_query);
     } else if (a.similar_to_title) {
@@ -130,15 +176,20 @@ const EXECUTORS = {
         "with_runtime.lte": a.max_runtime_minutes,
         with_original_language: a.original_language,
         sort_by: sort,
+        ...providerFilter,
       });
       raw = data.results || [];
     }
 
     const cards = raw.filter((m) => m.poster_path).slice(0, a.limit || 20).map(toCard);
-    if (!cards.length) return { result: { shown: 0, note: "No matches. Suggest relaxing a filter." } };
+    if (!cards.length) return { result: { shown: 0, ...(unmatched.length && { unmatched_services: unmatched }), note: "No matches. Suggest relaxing a filter." } };
 
     return {
-      result: { shown: cards.length, row_title: a.row_title, movies: forModel(cards.slice(0, 10)) },
+      result: {
+        shown: cards.length, row_title: a.row_title, movies: forModel(cards.slice(0, 10)),
+        ...(unmatched.length && { unmatched_services: unmatched }),
+        ...(a.streaming_on?.length && (a.title_query || a.similar_to_title) && { note: "streaming_on was ignored for title/similar searches; use check_where_to_watch." }),
+      },
       directive: {
         type: "SHOW_MOVIE_ROW",
         payload: { rowId: crypto.randomUUID(), title: a.row_title, subtitle: a.intent_summary, placement: a.placement || "top", movies: cards },
@@ -146,7 +197,8 @@ const EXECUTORS = {
     };
   },
 
-  async play_or_preview_title(a, { tmdb }) {
+  async play_or_preview_title(a, ctx) {
+    const { tmdb } = ctx;
     let id = a.movie_id;
     if (!id && a.title_query) {
       const hits = await tmdb.searchMovie(a.title_query);
@@ -155,7 +207,12 @@ const EXECUTORS = {
     }
     if (!id) return { result: { ok: false, error: "Title not found on TMDB." } };
 
-    const [details, videos] = await Promise.all([tmdb.details(id), tmdb.videos(id)]);
+    const region = regionOf(a, ctx);
+    const [details, videos, providers] = await Promise.all([
+      tmdb.details(id),
+      tmdb.videos(id),
+      tmdb.watchProviders(id, region).catch(() => null), // availability is a bonus; never block playback
+    ]);
     const yt = videos.filter((v) => v.site === "YouTube");
     const video =
       yt.find((v) => v.type === "Trailer" && v.official) || yt.find((v) => v.type === "Trailer") || yt.find((v) => v.type === "Teaser") || yt[0];
@@ -163,7 +220,30 @@ const EXECUTORS = {
     const card = { ...toCard(details), genres: (details.genres || []).map((g) => g.name), runtime: details.runtime };
     return {
       result: { ok: true, opened: `${card.title} (${card.year})`, mode: a.mode, has_video: Boolean(video) },
-      directive: { type: "OPEN_PLAYER", payload: { mode: a.mode, movie: card, videoKey: video?.key || null } },
+      directive: {
+        type: "OPEN_PLAYER",
+        payload: { mode: a.mode, movie: card, videoKey: video?.key || null, providers: providers && { ...providers, region } },
+      },
+    };
+  },
+
+  async check_where_to_watch(a, ctx) {
+    const { tmdb } = ctx;
+    let id = a.movie_id;
+    if (!id && a.title_query) {
+      const hits = await tmdb.searchMovie(a.title_query);
+      const hit = (a.release_year && hits.find((m) => m.release_date?.startsWith(String(a.release_year)))) || hits[0];
+      id = hit?.id;
+    }
+    if (!id) return { result: { ok: false, error: "Title not found on TMDB." } };
+
+    const region = regionOf(a, ctx);
+    const [details, providers] = await Promise.all([tmdb.details(id), tmdb.watchProviders(id, region)]);
+    const card = { ...toCard(details), genres: (details.genres || []).map((g) => g.name), runtime: details.runtime };
+    const { link, flatrate, rent, buy } = providers;
+    return {
+      result: { ok: true, title: card.title, region, stream: names(flatrate), rent: names(rent), buy: names(buy) },
+      directive: { type: "SHOW_WATCH_PROVIDERS", payload: { movie: card, region, providers: { flatrate, rent, buy }, link } },
     };
   },
 

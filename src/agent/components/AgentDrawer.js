@@ -7,6 +7,7 @@ const SUGGESTIONS = [
   "Mind-bending sci-fi from the 2010s",
   "Feel-good movies under 100 minutes",
   "Play the trailer for Interstellar",
+  "Where can I watch Interstellar?",
   "A horror marathon that escalates, 5 films",
   "Something like Parasite but less dark",
 ];

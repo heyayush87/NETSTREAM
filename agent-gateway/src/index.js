@@ -55,6 +55,7 @@ app.post("/api/agent/chat", async (c) => {
   if (!input) return c.json({ error: "Empty input" }, 400);
 
   const tmdb = createTmdb(c.env);
+  const region = /^[A-Z]{2}$/.test(body.uiContext?.region) ? body.uiContext.region : "IN";
   const history = sanitizeHistory(body.history);
   const userMsg = { role: "user", content: input };
   const messages = [{ role: "system", content: systemPrompt(body.uiContext) }, ...history, userMsg];
@@ -87,7 +88,7 @@ app.post("/api/agent/chat", async (c) => {
         const results = await Promise.all(
           toolCalls.map(async (tc) => {
             await send("tool_call", { id: tc.id, name: tc.function.name, args: safeParse(tc.function.arguments) });
-            const { result, directive } = await executeTool(tc.function.name, tc.function.arguments, { tmdb, user: c.get("user") });
+            const { result, directive } = await executeTool(tc.function.name, tc.function.arguments, { tmdb, user: c.get("user"), region });
             await send("tool_result", { id: tc.id, name: tc.function.name, ok: !result?.error, result, directive: directive || null });
             return { role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) };
           })
@@ -149,6 +150,7 @@ function sanitizeHistory(raw) {
 function systemPrompt(ui = {}) {
   const ctx = JSON.stringify({
     route: String(ui.route || "/browse").slice(0, 40),
+    region: /^[A-Z]{2}$/.test(ui.region) ? ui.region : "IN",
     view: ui.view === "ai_search" ? "ai_search" : "home",
     player_open: ui.player || null,
     visible_rows: (ui.rows || []).slice(0, 6),
@@ -162,6 +164,7 @@ Rules:
 - Translate vibes into concrete filters (e.g. "feel-good" → comedy/family, min_rating 6.5; "mind-bending" → keywords ["twist ending","nonlinear timeline"], science_fiction/thriller).
 - To play or preview, reuse TMDB ids from earlier tool results or the UI context. Use title_query only when no id is known.
 - For moods, occasions, marathons or "a list for…", use curate_mood_watchlist.
+- Streaming: for "on Netflix / Prime / Hotstar" requests, pass streaming_on to filter_and_display_movies (region defaults to ui_context.region). For "where can I watch X" or "is X on Netflix", call check_where_to_watch. If a tool reports unmatched_services, say plainly that you couldn't find those services; never show an unfiltered row as if it were filtered.
 - Never invent movie ids, titles or availability. Trailers are what the player shows; do not promise full movies.
 - After tools run, mention 2-3 standout titles at most. No markdown tables.
 - If a tool returns an error, recover once with adjusted arguments, otherwise explain briefly.

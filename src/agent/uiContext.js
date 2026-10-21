@@ -5,7 +5,7 @@
 const brief = (movies = [], n = 8) => (movies || []).slice(0, n).map((m) => `${m.id}|${m.title || m.original_title}`);
 
 export function selectUiContext(state) {
-  const { movies, Gpt, player, watchlists } = state;
+  const { movies, Gpt, player, watchlists, Config } = state;
   const rows = [
     ...movies.agentRows.map((r) => ({ title: r.title, movies: brief(r.movies) })),
     { title: "Now Playing", movies: brief(movies.nowPlayingMovies, 5) },
@@ -13,6 +13,7 @@ export function selectUiContext(state) {
   ];
   return {
     route: window.location.pathname,
+    region: Config?.region || "IN",
     view: Gpt.showgptsearch ? "ai_search" : "home",
     player: player.isOpen && player.movie ? `${player.movie.id}|${player.movie.title}` : null,
     rows,

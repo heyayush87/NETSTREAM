@@ -38,3 +38,41 @@ test("OPEN_PLAYER and CREATE_WATCHLIST update their slices", () => {
   applyToolResult({ name: "curate_mood_watchlist", ok: true, directive: { type: "CREATE_WATCHLIST", payload: { id: "w1", name: "Rainy", mood: "cozy", items: [card] } } }, ctx);
   expect(store.getState().watchlists.activeId).toBe("w1");
 });
+
+describe("check_where_to_watch", () => {
+  const providers = { flatrate: [{ id: 8, name: "Netflix", logo_path: "/n.jpg" }, { bad: true }], rent: [], buy: [] };
+
+  test("SHOW_WATCH_PROVIDERS opens a preview with a cleaned providers block", () => {
+    const { store, ctx } = setup();
+    const label = applyToolResult(
+      { name: "check_where_to_watch", ok: true, directive: { type: "SHOW_WATCH_PROVIDERS", payload: { movie: card, region: "IN", providers, link: "https://tmdb.test/w" } } },
+      ctx
+    );
+    const p = store.getState().player;
+    expect(p).toMatchObject({ isOpen: true, mode: "preview" });
+    expect(p.providers.flatrate).toEqual([{ id: 8, name: "Netflix", logo_path: "/n.jpg" }]);
+    expect(p.providers).toMatchObject({ region: "IN", link: "https://tmdb.test/w" });
+    expect(label).toMatch(/streams on 1 service/);
+  });
+
+  test("drops non-https links", () => {
+    const { store, ctx } = setup();
+    applyToolResult(
+      { name: "check_where_to_watch", ok: true, directive: { type: "SHOW_WATCH_PROVIDERS", payload: { movie: card, region: "IN", providers, link: "javascript:alert(1)" } } },
+      ctx
+    );
+    expect(store.getState().player.providers.link).toBeNull();
+  });
+
+  test("rejects a directive that doesn't belong to the tool", () => {
+    const { store, ctx } = setup();
+    applyToolResult({ name: "check_where_to_watch", ok: true, directive: { type: "OPEN_PLAYER", payload: { movie: card } } }, ctx);
+    expect(store.getState().player.isOpen).toBe(false);
+  });
+
+  test("OPEN_PLAYER carries providers through", () => {
+    const { store, ctx } = setup();
+    applyToolResult({ name: "play_or_preview_title", ok: true, directive: { type: "OPEN_PLAYER", payload: { movie: card, videoKey: "yt", mode: "preview", providers: { region: "IN", link: null, ...providers } } } }, ctx);
+    expect(store.getState().player.providers.flatrate).toHaveLength(1);
+  });
+});

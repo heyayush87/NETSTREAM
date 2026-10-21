@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPair, exportJWK, SignJWT } from "jose";
 import app from "../src/index.js";
+import { TOOL_SCHEMAS } from "../src/tools.js";
 
 const PROJECT = "demo-project";
 const env = {
@@ -36,7 +37,7 @@ globalThis.fetch = async (input, init) => {
     const body = JSON.parse(init.body);
     llmCalls++;
     if (llmCalls === 1) {
-      assert.equal(body.tools.length, 3);
+      assert.equal(body.tools.length, TOOL_SCHEMAS.length);
       // tool call split across deltas, like real providers do
       return sse([
         { choices: [{ delta: { tool_calls: [{ index: 0, id: "c1", function: { name: "filter_and_display_movies", arguments: '{"row_title":"Cerebral Sci-Fi",' } }] } }] },

@@ -9,6 +9,13 @@ import { createWatchlist } from "../utils/watchlistSlice";
 
 const isCard = (m) => m && Number.isInteger(m.id) && typeof m.title === "string";
 
+// Re-validate provider blocks: only well-formed entries reach the UI, and only https links.
+const cleanList = (l) => (Array.isArray(l) ? l.filter((p) => p && typeof p.name === "string").map((p) => ({ id: p.id, name: p.name, logo_path: typeof p.logo_path === "string" ? p.logo_path : null })) : []);
+const cleanProviders = (p, region, link) =>
+  p && typeof p === "object"
+    ? { region: /^[A-Z]{2}$/.test(region || p.region) ? region || p.region : "IN", link: /^https:\/\//.test(link || p.link || "") ? link || p.link : null, flatrate: cleanList(p.flatrate), rent: cleanList(p.rent), buy: cleanList(p.buy) }
+    : null;
+
 // Leave the AI-search view, go to /browse, and scroll an element into view once it renders.
 function showOnBrowse({ dispatch, navigate, getState }, elementId) {
   if (getState().Gpt.showgptsearch) dispatch(setGptsearch(false));
@@ -41,8 +48,20 @@ export const TOOL_HANDLERS = {
     directiveType: "OPEN_PLAYER",
     run(payload, { dispatch }) {
       if (!isCard(payload.movie)) return "Couldn't open that title";
-      dispatch(openPlayer({ movie: payload.movie, videoKey: payload.videoKey, mode: payload.mode }));
+      dispatch(openPlayer({ movie: payload.movie, videoKey: payload.videoKey, mode: payload.mode, providers: cleanProviders(payload.providers) }));
       return payload.videoKey ? `Playing ${payload.movie.title}` : `${payload.movie.title} (no trailer available)`;
+    },
+  },
+
+  check_where_to_watch: {
+    label: "Checking where to watch",
+    directiveType: "SHOW_WATCH_PROVIDERS",
+    run(payload, { dispatch }) {
+      if (!isCard(payload.movie)) return "Couldn't find that title";
+      const providers = cleanProviders(payload.providers, payload.region, payload.link);
+      dispatch(openPlayer({ movie: payload.movie, mode: "preview", providers }));
+      const n = providers ? providers.flatrate.length : 0;
+      return n ? `${payload.movie.title} streams on ${n} service${n > 1 ? "s" : ""}` : `${payload.movie.title} · availability`;
     },
   },
 

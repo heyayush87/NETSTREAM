@@ -16,9 +16,38 @@ const GENRE_BY_ID = Object.fromEntries(Object.entries(GENRES).map(([k, v]) => [v
 const ALLOWED = [
   /^\/discover\/movie$/,
   /^\/search\/(movie|keyword)$/,
-  /^\/movie\/\d+(\/(videos|recommendations|similar))?$/,
+  /^\/movie\/\d+(\/(videos|recommendations|similar|watch\/providers))?$/,
+  /^\/watch\/providers\/movie$/,
   /^\/movie\/(now_playing|popular|top_rated|upcoming)$/,
 ];
+
+// Provider catalogs are per region and TMDB changes ids over time, so never hardcode them.
+// Cached per Worker isolate for 24h.
+const CATALOG_TTL_MS = 24 * 60 * 60 * 1000;
+const catalogCache = new Map(); // region -> { at, map }
+export const resetProviderCatalogCache = () => catalogCache.clear();
+
+const normName = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Fuzzy-match free-text service names ("prime", "Hotstar") against a { name: id } catalog.
+ * A name matches when either normalized string contains the other (short catalog names excluded
+ * from the reverse check so "MX" can't match everything).
+ */
+export function matchProviders(names = [], catalog = {}) {
+  const entries = Object.entries(catalog).map(([name, id]) => [normName(name), id]);
+  const ids = new Set();
+  const unmatched = [];
+  for (const raw of names) {
+    const q = normName(raw);
+    const hits = q.length < 3 ? [] : entries.filter(([n]) => n === q || n.includes(q) || (n.length >= 4 && q.includes(n)));
+    if (hits.length) hits.forEach(([, id]) => ids.add(id));
+    else unmatched.push(raw);
+  }
+  return { ids: [...ids], unmatched };
+}
+
+const shapeProvider = (p) => ({ id: p.provider_id, name: p.provider_name, logo_path: p.logo_path || null });
 
 export function createTmdb(env) {
   async function get(path, params = {}) {
@@ -35,8 +64,27 @@ export function createTmdb(env) {
     return res.json();
   }
 
+  async function providerCatalog(region = "IN") {
+    const hit = catalogCache.get(region);
+    if (hit && Date.now() - hit.at < CATALOG_TTL_MS) return hit.map;
+    const data = await get("/watch/providers/movie", { watch_region: region, language: "en-US" });
+    const map = Object.fromEntries((data.results || []).map((p) => [p.provider_name, p.provider_id]));
+    catalogCache.set(region, { at: Date.now(), map });
+    return map;
+  }
+
   return {
     get,
+    providerCatalog,
+    watchProviders: async (id, region = "IN") => {
+      const r = (await get(`/movie/${id}/watch/providers`)).results?.[region] || {};
+      return {
+        link: r.link || null,
+        flatrate: (r.flatrate || []).map(shapeProvider),
+        rent: (r.rent || []).map(shapeProvider),
+        buy: (r.buy || []).map(shapeProvider),
+      };
+    },
     discover: (params) => get("/discover/movie", { include_adult: false, language: "en-US", page: 1, ...params }),
     searchMovie: async (query) => (await get("/search/movie", { query, include_adult: false, page: 1 })).results || [],
     searchKeywordIds: async (words = []) => {
