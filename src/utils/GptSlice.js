@@ -4,6 +4,8 @@ const GptSlice = createSlice({
   name: "Gpt",
   initialState: {
     showgptsearch: false,
+    searchQuery: "", // what the user typed
+    searchResults: [], // TMDB matches for that name (poster + trailer)
     movieNames: [],
     movieResults: [],
   },
@@ -16,6 +18,8 @@ const GptSlice = createSlice({
       state.showgptsearch = Boolean(action.payload);
     },
     addGptMovieResult: (state, action) => {
+      state.searchQuery = typeof action.payload.searchQuery === "string" ? action.payload.searchQuery : "";
+      state.searchResults = Array.isArray(action.payload.searchResults) ? action.payload.searchResults : [];
       state.movieResults = Array.isArray(action.payload.movieResults)
         ? action.payload.movieResults
         : [];
