@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
@@ -16,7 +16,14 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+// Analytics is optional. Starting it without an API key (or in a browser that blocks it) used to
+// crash the whole app at import time, so it only starts when it can, and never throws.
+if (firebaseConfig.apiKey) {
+  isSupported()
+    .then((ok) => ok && getAnalytics(app))
+    .catch(() => {});
+}
 
 export const auth = getAuth(app); // ✅ Pass `app` to `getAuth()`
 export const db = getFirestore(app); // watch parties (see firestore.rules)

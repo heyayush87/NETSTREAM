@@ -20,12 +20,6 @@ export const bglogo =
 
 export const IMG_CDN_URL = "https://image.tmdb.org/t/p/w500";
 
-export const Supported_Languages = [
-  { identifiers: "en", name: "English" },
-  { identifiers: "hindi", name: "Hindi" },
-  { identifiers: "Spanish", name: "Spanish" },
-];
-
 // export const OPENAI_KEY = process.env.REACT_APP_OPENAI_KEY; // OpenAI API Key
 // Note: Gemini_Key should be accessed directly from process.env.REACT_APP_GEMINI_KEY in components
 // to ensure it's read at runtime, not build time
