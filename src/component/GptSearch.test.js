@@ -81,7 +81,14 @@ test("an unknown movie says so, and an empty search asks for a name", async () =
   await waitFor(() => expect(screen.getByText('No movie found for "Zzzz Nonexistent"')).toBeTruthy());
 });
 
-test("before any search, the page invites the user to search", () => {
+test("search results are released films first, most popular first", async () => {
+  const future = { ...movie(3, "Avengers: Doomsday"), release_date: "2999-01-01", popularity: 1087 };
+  const hits = [future, { ...movie(1, "The Avengers"), popularity: 60 }, { ...movie(2, "Avengers: Endgame"), popularity: 80 }];
+  global.fetch.mockImplementation(tmdbByName({ avengers: hits }));
+  GroqApi.mockResolvedValue("");
   mount();
-  expect(screen.getByText(/Search for a movie to see its poster/)).toBeTruthy();
+  search("avengers");
+  await screen.findByLabelText("Play trailer for The Avengers");
+  const order = screen.getAllByLabelText(/Play trailer for/).map((b) => b.getAttribute("aria-label"));
+  expect(order).toEqual(["Play trailer for Avengers: Endgame", "Play trailer for The Avengers", "Play trailer for Avengers: Doomsday"]);
 });

@@ -39,7 +39,13 @@ const GptSearchbarPage = () => {
     setError(null);
 
     // 1) Show the movie the user typed (poster + trailer on click) right away.
-    const found = (await searchMovieTmdb(query)).filter((m) => m.poster_path).slice(0, 12);
+    // Released films first, then by popularity, so "avengers" doesn't lead with an unreleased sequel.
+    const today = new Date().toISOString().slice(0, 10);
+    const released = (m) => (m.release_date && m.release_date <= today ? 1 : 0);
+    const found = (await searchMovieTmdb(query))
+      .filter((m) => m.poster_path)
+      .sort((a, b) => released(b) - released(a) || (b.popularity || 0) - (a.popularity || 0))
+      .slice(0, 12);
     dispatch(addGptMovieResult({ searchQuery: query, searchResults: found, movieNames: [], movieResults: [] }));
     if (!found.length) setError(`No movie found for "${query}"`);
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { closePlayer, advanceQueue, setPlayerVideo, setPlayerProviders } from "../../utils/playerSlice";
 import { IMG_CDN_URL } from "../../utils/constant";
@@ -52,12 +52,17 @@ const PlayerModal = () => {
   const dispatch = useDispatch();
   const { isOpen, mode, movie, videoKey, providers, queue, queueIndex } = useSelector((s) => s.player);
   const region = useSelector((s) => s.Config?.region) || "IN";
+  const [noTrailerFor, setNoTrailerFor] = useState(null); // movie id whose trailer lookup found nothing
 
   // Items opened from a card or a watchlist arrive without a trailer key — resolve it here.
   useEffect(() => {
     if (!isOpen || !movie || videoKey) return;
     let cancelled = false;
-    fetchTrailerKey(movie.id).then((key) => !cancelled && key && dispatch(setPlayerVideo(key)));
+    fetchTrailerKey(movie.id).then((key) => {
+      if (cancelled) return;
+      if (key) dispatch(setPlayerVideo(key));
+      else setNoTrailerFor(movie.id);
+    });
     return () => {
       cancelled = true;
     };
@@ -101,10 +106,27 @@ const PlayerModal = () => {
         <div className="relative aspect-video w-full bg-black">
           {src ? (
             <iframe className="h-full w-full" src={src} title={`${movie.title} trailer`} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
-          ) : movie.backdrop_path ? (
-            <img src={`${IMG_CDN_URL}${movie.backdrop_path}`} alt="" className="h-full w-full object-cover opacity-60" />
           ) : (
-            <div className="flex h-full items-center justify-center text-gray-500">Loading trailer…</div>
+            <>
+              {movie.backdrop_path && <img src={`${IMG_CDN_URL}${movie.backdrop_path}`} alt="" className="absolute inset-0 h-full w-full object-cover opacity-40" />}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center text-gray-200" role="status">
+                {noTrailerFor === movie.id ? (
+                  <>
+                    <span>Trailer not available for this title.</span>
+                    <a
+                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${movie.title} ${movie.year || ""} trailer`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium hover:bg-red-700"
+                    >
+                      Search on YouTube
+                    </a>
+                  </>
+                ) : (
+                  <span>Loading trailer…</span>
+                )}
+              </div>
+            </>
           )}
           <button onClick={() => dispatch(closePlayer())} className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1.5 text-sm hover:bg-black" aria-label="Close player">
             ✕
@@ -118,6 +140,11 @@ const PlayerModal = () => {
               {[movie.year, movie.rating && `★ ${movie.rating}`, movie.runtime && `${movie.runtime} min`].filter(Boolean).join(" · ")}
             </span>
           </div>
+          {videoKey && (
+            <a href={`https://www.youtube.com/watch?v=${videoKey}`} target="_blank" rel="noopener noreferrer" className="inline-block text-xs text-gray-400 underline hover:text-white">
+              Video not loading? Open on YouTube
+            </a>
+          )}
           {!isPlay && <p className="line-clamp-3 text-sm text-gray-300">{movie.overview}</p>}
           <WhereToWatch providers={providers} region={providers?.region || region} />
           {queue.length > 1 && (

@@ -1,6 +1,7 @@
 import React from "react";
 import GptSearchbarPage from "./GptSearchbarPage";
 import GptMovieSuggestion from "./GptMovieSuggestion";
+import MovieExplorer from "./MovieExplorer";
 import { bglogo } from "../utils/constant";
 
 const GptPage = () => {
@@ -21,6 +22,7 @@ const GptPage = () => {
       <div className="pt-8 px-2 sm:px-4 md:px-8 w-full max-w-7xl mx-auto text-white flex flex-col gap-6 flex-grow z-10 relative">
         <GptSearchbarPage />
         <GptMovieSuggestion />
+        <MovieExplorer />
       </div>
     </div>
   );

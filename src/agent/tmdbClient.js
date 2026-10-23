@@ -3,13 +3,23 @@ import { CLOUDLFARE_PROXY_URL } from "../utils/constant";
 // Prefer the locked-down gateway proxy; fall back to the existing worker until it's retired.
 const GATEWAY = process.env.REACT_APP_AGENT_URL?.replace(/\/$/, "");
 
-async function tmdbGet(path) {
-  const url = GATEWAY
-    ? `${GATEWAY}/api/tmdb${path}`
-    : `${CLOUDLFARE_PROXY_URL}?url=${encodeURIComponent(`https://api.themoviedb.org/3${path}`)}`;
+const viaProxy = (path) => `${CLOUDLFARE_PROXY_URL}?url=${encodeURIComponent(`https://api.themoviedb.org/3${path}`)}`;
+
+async function getJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`TMDB ${res.status}`);
   return res.json();
+}
+
+// If the gateway is down or unreachable (e.g. local dev without it running), fall back to the
+// proxy so trailers and availability keep working instead of silently failing.
+async function tmdbGet(path) {
+  if (!GATEWAY) return getJson(viaProxy(path));
+  try {
+    return await getJson(`${GATEWAY}/api/tmdb${path}`);
+  } catch {
+    return getJson(viaProxy(path));
+  }
 }
 
 const shape = (list = []) => list.map((p) => ({ id: p.provider_id, name: p.provider_name, logo_path: p.logo_path || null }));

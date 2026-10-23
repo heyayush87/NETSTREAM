@@ -9,13 +9,8 @@ const GptMovieSuggestion = () => {
   const movieNames = gptState?.movieNames || [];
   const movieResults = gptState?.movieResults || [];
 
-  if (!searchResults.length && !movieNames.length) {
-    return (
-      <div className="p-2 sm:p-4 m-2 sm:m-4 text-white w-full text-center bg-black bg-opacity-30 rounded">
-        <p>Search for a movie to see its poster and play the trailer.</p>
-      </div>
-    );
-  }
+  // Nothing searched yet: the popular-movies browser below fills the page.
+  if (!searchResults.length && !movieNames.length) return null;
 
   return (
     <div className="w-full p-2 sm:p-4 m-0 flex flex-col gap-4">
